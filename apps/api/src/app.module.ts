@@ -11,6 +11,7 @@ import { UsersModule } from "./users/users.module";
 import { AdaptersModule } from "./adapters/adapters.module";
 import { DevicesModule } from "./devices/devices.module";
 import { RealtimeModule } from "./realtime/realtime.module";
+import { AutomationsModule } from "./automations/automations.module";
 
 @Module({
   imports: [
@@ -41,6 +42,7 @@ import { RealtimeModule } from "./realtime/realtime.module";
     AdaptersModule,
     DevicesModule,
     RealtimeModule,
+    AutomationsModule,
   ],
 })
 export class AppModule {}

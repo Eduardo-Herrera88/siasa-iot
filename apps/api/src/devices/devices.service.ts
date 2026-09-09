@@ -59,7 +59,11 @@ export class DevicesService {
   }
 
   /** Encola el comando; el CommandsProcessor lo despacha al adaptador correspondiente de forma asincrona con reintentos. */
-  async sendCommand(deviceId: string, action: CommandAction, userId?: string) {
+  async sendCommand(
+    deviceId: string,
+    action: CommandAction,
+    options: { userId?: string; ruleId?: string; delayMs?: number } = {},
+  ) {
     const device = await this.findOne(deviceId);
 
     const command = await this.prisma.command.create({
@@ -67,14 +71,19 @@ export class DevicesService {
         deviceId: device.id,
         action,
         status: CommandStatus.pending,
-        requestedBy: userId,
+        requestedBy: options.userId,
+        triggeredById: options.ruleId,
       },
     });
 
     await this.commandsQueue.add(
       "dispatch",
       { commandId: command.id },
-      { attempts: 3, backoff: { type: "exponential", delay: 1000 } },
+      {
+        attempts: 3,
+        backoff: { type: "exponential", delay: 1000 },
+        delay: options.delayMs,
+      },
     );
 
     return command;

@@ -41,6 +41,6 @@ export class DevicesController {
     @Body() dto: DeviceCommandDto,
     @CurrentUser() user: AuthenticatedUser,
   ) {
-    return this.devicesService.sendCommand(id, dto.action, user.id);
+    return this.devicesService.sendCommand(id, dto.action, { userId: user.id });
   }
 }

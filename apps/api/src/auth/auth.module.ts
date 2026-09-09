@@ -10,6 +10,6 @@ import { EventsModule } from "../events/events.module";
   imports: [JwtModule.register({}), EventsModule],
   controllers: [AuthController],
   providers: [AuthService, JwtAuthGuard, RolesGuard],
-  exports: [AuthService, JwtAuthGuard, RolesGuard],
+  exports: [AuthService, JwtAuthGuard, RolesGuard, JwtModule],
 })
 export class AuthModule {}

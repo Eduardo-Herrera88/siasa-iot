@@ -30,6 +30,17 @@ enum CommandStatus {
   failed
 }
 
+enum ComparisonOperator {
+  eq
+  ne
+}
+
+enum RuleExecutionStatus {
+  success
+  failed
+  condition_not_met
+}
+
 model User {
   id           String   @id @default(uuid())
   username     String   @unique
@@ -38,9 +49,10 @@ model User {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  refreshTokens RefreshToken[]
-  commands      Command[]
-  eventLogs     EventLog[]
+  refreshTokens   RefreshToken[]
+  commands        Command[]
+  eventLogs       EventLog[]
+  automationRules AutomationRule[]
 
   @@map("users")
 }
@@ -75,6 +87,10 @@ model Device {
   state    DeviceState?
   commands Command[]
 
+  ruleTriggers   RuleTrigger[]
+  ruleConditions RuleCondition[]
+  ruleActions    RuleAction[]
+
   @@map("devices")
 }
 
@@ -90,19 +106,97 @@ model DeviceState {
 }
 
 model Command {
-  id          String        @id @default(uuid())
-  deviceId    String
-  device      Device        @relation(fields: [deviceId], references: [id], onDelete: Cascade)
-  action      CommandAction
-  status      CommandStatus @default(pending)
-  requestedBy String?
-  user        User?         @relation(fields: [requestedBy], references: [id], onDelete: SetNull)
-  error       String?
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+  id            String        @id @default(uuid())
+  deviceId      String
+  device        Device        @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  action        CommandAction
+  status        CommandStatus @default(pending)
+  requestedBy   String?
+  user          User?         @relation(fields: [requestedBy], references: [id], onDelete: SetNull)
+  triggeredById String?
+  triggeredBy   AutomationRule? @relation(fields: [triggeredById], references: [id], onDelete: SetNull)
+  error         String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
 
   @@index([deviceId])
   @@map("commands")
+}
+
+model AutomationRule {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  enabled     Boolean  @default(true)
+  createdBy   String?
+  user        User?    @relation(fields: [createdBy], references: [id], onDelete: SetNull)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  triggers   RuleTrigger[]
+  conditions RuleCondition[]
+  actions    RuleAction[]
+  executions RuleExecution[]
+  commands   Command[]
+
+  @@map("automation_rules")
+}
+
+/// Cuando el estado del dispositivo referenciado cumple operator+value, la regla se evalua.
+model RuleTrigger {
+  id       String             @id @default(uuid())
+  ruleId   String
+  rule     AutomationRule     @relation(fields: [ruleId], references: [id], onDelete: Cascade)
+  deviceId String
+  device   Device             @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  operator ComparisonOperator @default(eq)
+  value    String
+
+  @@index([ruleId])
+  @@index([deviceId])
+  @@map("rule_triggers")
+}
+
+/// Condicion adicional (AND) sobre el estado actual de otro dispositivo, evaluada antes de ejecutar las acciones.
+model RuleCondition {
+  id       String             @id @default(uuid())
+  ruleId   String
+  rule     AutomationRule     @relation(fields: [ruleId], references: [id], onDelete: Cascade)
+  deviceId String
+  device   Device             @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  operator ComparisonOperator @default(eq)
+  value    String
+
+  @@index([ruleId])
+  @@index([deviceId])
+  @@map("rule_conditions")
+}
+
+/// Comando a despachar cuando la regla dispara; se ejecutan en orden, con retardo opcional.
+model RuleAction {
+  id       String        @id @default(uuid())
+  ruleId   String
+  rule     AutomationRule @relation(fields: [ruleId], references: [id], onDelete: Cascade)
+  order    Int           @default(0)
+  deviceId String
+  device   Device        @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  action   CommandAction
+  delayMs  Int           @default(0)
+
+  @@index([ruleId])
+  @@map("rule_actions")
+}
+
+model RuleExecution {
+  id        String               @id @default(uuid())
+  ruleId    String
+  rule      AutomationRule       @relation(fields: [ruleId], references: [id], onDelete: Cascade)
+  status    RuleExecutionStatus
+  message   String?
+  createdAt DateTime             @default(now())
+
+  @@index([ruleId])
+  @@map("rule_executions")
 }
 
 model EventLog {
