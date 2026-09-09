@@ -13,7 +13,32 @@ export interface Device {
   protocol: "mqtt" | "http";
   commandTopic: string | null;
   stateTopic: string | null;
+  httpBaseUrl: string | null;
   state: DeviceState | null;
+}
+
+export type HttpMethod = "GET" | "POST" | "PUT";
+
+export interface HttpActionTemplate {
+  method: HttpMethod;
+  path: string;
+}
+
+export interface CreateDevicePayload {
+  name: string;
+  protocol: "mqtt" | "http";
+  payloadOn?: string;
+  payloadOff?: string;
+  commandTopic?: string;
+  stateTopic?: string;
+  httpBaseUrl?: string;
+  httpConfig?: {
+    on: HttpActionTemplate;
+    off: HttpActionTemplate;
+    state?: HttpActionTemplate;
+    pollIntervalMs?: number;
+    stateJsonPath?: string;
+  };
 }
 
 export function useDevices() {
@@ -24,6 +49,19 @@ export function useDevices() {
       return data;
     },
     refetchInterval: 15_000,
+  });
+}
+
+export function useCreateDevice() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (payload: CreateDevicePayload) => {
+      const { data } = await apiClient.post<Device>("/devices", payload);
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["devices"] });
+    },
   });
 }
 

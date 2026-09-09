@@ -45,6 +45,7 @@ export class DevicesService {
         payloadOn: dto.payloadOn ?? "ON",
         payloadOff: dto.payloadOff ?? "OFF",
         httpBaseUrl: dto.httpBaseUrl,
+        metadata: dto.httpConfig ? { http: dto.httpConfig as object } : undefined,
       },
     });
 

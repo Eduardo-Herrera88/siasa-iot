@@ -1,7 +1,9 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useDevices, useSendDeviceCommand } from "../api/devices";
 import { useDeviceSocket } from "../ws/useDeviceSocket";
 import { useAuthStore } from "../store/auth.store";
+import AddDeviceForm from "./AddDeviceForm";
 
 export default function Devices() {
   const navigate = useNavigate();
@@ -9,6 +11,7 @@ export default function Devices() {
   const sendCommand = useSendDeviceCommand();
   const user = useAuthStore((s) => s.user);
   const clear = useAuthStore((s) => s.clear);
+  const [showForm, setShowForm] = useState(false);
 
   useDeviceSocket();
 
@@ -26,13 +29,23 @@ export default function Devices() {
             {user?.username} · {user?.role}
           </p>
         </div>
-        <button
-          onClick={handleLogout}
-          className="rounded-md bg-slate-800 px-3 py-1.5 text-sm hover:bg-slate-700"
-        >
-          Cerrar sesion
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setShowForm((v) => !v)}
+            className="rounded-md bg-sky-600 px-3 py-1.5 text-sm hover:bg-sky-500"
+          >
+            {showForm ? "Cerrar formulario" : "Agregar dispositivo"}
+          </button>
+          <button
+            onClick={handleLogout}
+            className="rounded-md bg-slate-800 px-3 py-1.5 text-sm hover:bg-slate-700"
+          >
+            Cerrar sesion
+          </button>
+        </div>
       </header>
+
+      {showForm && <AddDeviceForm onDone={() => setShowForm(false)} />}
 
       {isLoading && <p className="text-slate-400">Cargando...</p>}
       {isError && <p className="text-red-400">No se pudieron cargar los dispositivos.</p>}

@@ -1,5 +1,7 @@
-import { IsEnum, IsOptional, IsString, MinLength } from "class-validator";
+import { Type } from "class-transformer";
+import { IsEnum, IsOptional, IsString, MinLength, ValidateIf, ValidateNested } from "class-validator";
 import { DeviceProtocol } from "@prisma/client";
+import { HttpDeviceConfigDto } from "./http-device-config.dto";
 
 export class CreateDeviceDto {
   @IsString()
@@ -25,7 +27,14 @@ export class CreateDeviceDto {
   @IsString()
   payloadOff?: string;
 
-  @IsOptional()
+  @ValidateIf((dto: CreateDeviceDto) => dto.protocol === DeviceProtocol.http)
   @IsString()
+  @MinLength(1)
   httpBaseUrl?: string;
+
+  /** Requerido cuando protocol = http: define como se enciende/apaga/lee el estado del dispositivo. */
+  @ValidateIf((dto: CreateDeviceDto) => dto.protocol === DeviceProtocol.http)
+  @ValidateNested()
+  @Type(() => HttpDeviceConfigDto)
+  httpConfig?: HttpDeviceConfigDto;
 }
