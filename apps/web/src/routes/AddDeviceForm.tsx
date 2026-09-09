@@ -1,36 +1,51 @@
 import { FormEvent, useState } from "react";
-import { useCreateDevice, type CreateDevicePayload, type HttpMethod } from "../api/devices";
+import {
+  useCreateDevice,
+  useUpdateDevice,
+  type CreateDevicePayload,
+  type Device,
+  type HttpMethod,
+} from "../api/devices";
 
 const inputClass =
   "w-full rounded-md bg-slate-800 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-sky-500";
 const labelClass = "mb-1 block text-xs text-slate-400";
 
-export default function AddDeviceForm({ onDone }: { onDone: () => void }) {
+function jsonOrEmpty(value: unknown): string {
+  return value === undefined || value === null ? "" : JSON.stringify(value);
+}
+
+/** Crea un dispositivo nuevo, o edita uno existente si se pasa `device` (precarga sus valores, incluida la config HTTP guardada). */
+export default function AddDeviceForm({ device, onDone }: { device?: Device; onDone: () => void }) {
+  const isEditing = Boolean(device);
   const createDevice = useCreateDevice();
-  const [protocol, setProtocol] = useState<"mqtt" | "http">("mqtt");
-  const [name, setName] = useState("");
+  const updateDevice = useUpdateDevice();
+  const httpConfig = device?.metadata?.http;
+
+  const [protocol, setProtocol] = useState<"mqtt" | "http">(device?.protocol ?? "mqtt");
+  const [name, setName] = useState(device?.name ?? "");
   const [error, setError] = useState<string | null>(null);
 
-  const [payloadOn, setPayloadOn] = useState("ON");
-  const [payloadOff, setPayloadOff] = useState("OFF");
+  const [payloadOn, setPayloadOn] = useState(device?.payloadOn ?? "ON");
+  const [payloadOff, setPayloadOff] = useState(device?.payloadOff ?? "OFF");
 
   // mqtt
-  const [commandTopic, setCommandTopic] = useState("");
-  const [stateTopic, setStateTopic] = useState("");
+  const [commandTopic, setCommandTopic] = useState(device?.commandTopic ?? "");
+  const [stateTopic, setStateTopic] = useState(device?.stateTopic ?? "");
 
   // http
-  const [httpBaseUrl, setHttpBaseUrl] = useState("");
-  const [onMethod, setOnMethod] = useState<HttpMethod>("GET");
-  const [onPath, setOnPath] = useState("");
-  const [offMethod, setOffMethod] = useState<HttpMethod>("GET");
-  const [offPath, setOffPath] = useState("");
-  const [stateMethod, setStateMethod] = useState<HttpMethod>("GET");
-  const [statePath, setStatePath] = useState("");
-  const [pollIntervalMs, setPollIntervalMs] = useState("5000");
-  const [stateJsonPath, setStateJsonPath] = useState("");
-  const [headersJson, setHeadersJson] = useState("");
-  const [onBodyJson, setOnBodyJson] = useState("");
-  const [offBodyJson, setOffBodyJson] = useState("");
+  const [httpBaseUrl, setHttpBaseUrl] = useState(device?.httpBaseUrl ?? "");
+  const [onMethod, setOnMethod] = useState<HttpMethod>(httpConfig?.on.method ?? "GET");
+  const [onPath, setOnPath] = useState(httpConfig?.on.path ?? "");
+  const [offMethod, setOffMethod] = useState<HttpMethod>(httpConfig?.off.method ?? "GET");
+  const [offPath, setOffPath] = useState(httpConfig?.off.path ?? "");
+  const [stateMethod, setStateMethod] = useState<HttpMethod>(httpConfig?.state?.method ?? "GET");
+  const [statePath, setStatePath] = useState(httpConfig?.state?.path ?? "");
+  const [pollIntervalMs, setPollIntervalMs] = useState(String(httpConfig?.pollIntervalMs ?? 5000));
+  const [stateJsonPath, setStateJsonPath] = useState(httpConfig?.stateJsonPath ?? "");
+  const [headersJson, setHeadersJson] = useState(jsonOrEmpty(httpConfig?.on.headers));
+  const [onBodyJson, setOnBodyJson] = useState(jsonOrEmpty(httpConfig?.on.body));
+  const [offBodyJson, setOffBodyJson] = useState(jsonOrEmpty(httpConfig?.off.body));
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
@@ -79,16 +94,22 @@ export default function AddDeviceForm({ onDone }: { onDone: () => void }) {
     }
 
     try {
-      await createDevice.mutateAsync(payload);
+      if (isEditing && device) {
+        await updateDevice.mutateAsync({ id: device.id, payload });
+      } else {
+        await createDevice.mutateAsync(payload);
+      }
       onDone();
     } catch (err) {
-      setError("No se pudo crear el dispositivo. Revisa los datos e intenta de nuevo.");
+      setError(`No se pudo ${isEditing ? "actualizar" : "crear"} el dispositivo. Revisa los datos e intenta de nuevo.`);
     }
   }
 
+  const isPending = createDevice.isPending || updateDevice.isPending;
+
   return (
     <form onSubmit={handleSubmit} className="mb-6 rounded-xl bg-slate-900 p-5 shadow">
-      <h2 className="mb-4 font-medium">Agregar dispositivo</h2>
+      <h2 className="mb-4 font-medium">{isEditing ? `Editar dispositivo: ${device!.name}` : "Agregar dispositivo"}</h2>
 
       <div className="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div>
@@ -103,7 +124,7 @@ export default function AddDeviceForm({ onDone }: { onDone: () => void }) {
             onChange={(e) => setProtocol(e.target.value as "mqtt" | "http")}
           >
             <option value="mqtt">MQTT</option>
-            <option value="http">HTTP (Tasmota, Shelly, ESPHome, REST...)</option>
+            <option value="http">HTTP (Tasmota, Shelly, ESPHome, REST, Home Assistant...)</option>
           </select>
         </div>
       </div>
@@ -246,10 +267,10 @@ export default function AddDeviceForm({ onDone }: { onDone: () => void }) {
       <div className="flex gap-2">
         <button
           type="submit"
-          disabled={createDevice.isPending}
+          disabled={isPending}
           className="rounded-md bg-sky-600 px-4 py-2 text-sm font-medium hover:bg-sky-500 disabled:opacity-50"
         >
-          {createDevice.isPending ? "Guardando..." : "Guardar dispositivo"}
+          {isPending ? "Guardando..." : isEditing ? "Guardar cambios" : "Guardar dispositivo"}
         </button>
         <button
           type="button"

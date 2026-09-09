@@ -7,16 +7,6 @@ export interface DeviceState {
   updatedAt: string;
 }
 
-export interface Device {
-  id: string;
-  name: string;
-  protocol: "mqtt" | "http";
-  commandTopic: string | null;
-  stateTopic: string | null;
-  httpBaseUrl: string | null;
-  state: DeviceState | null;
-}
-
 export type HttpMethod = "GET" | "POST" | "PUT";
 
 export interface HttpActionTemplate {
@@ -24,6 +14,27 @@ export interface HttpActionTemplate {
   path: string;
   headers?: Record<string, string>;
   body?: unknown;
+}
+
+export interface HttpDeviceConfig {
+  on: HttpActionTemplate;
+  off: HttpActionTemplate;
+  state?: HttpActionTemplate;
+  pollIntervalMs?: number;
+  stateJsonPath?: string;
+}
+
+export interface Device {
+  id: string;
+  name: string;
+  protocol: "mqtt" | "http";
+  commandTopic: string | null;
+  stateTopic: string | null;
+  httpBaseUrl: string | null;
+  payloadOn: string;
+  payloadOff: string;
+  metadata: { http?: HttpDeviceConfig } | null;
+  state: DeviceState | null;
 }
 
 export interface CreateDevicePayload {
@@ -34,14 +45,10 @@ export interface CreateDevicePayload {
   commandTopic?: string;
   stateTopic?: string;
   httpBaseUrl?: string;
-  httpConfig?: {
-    on: HttpActionTemplate;
-    off: HttpActionTemplate;
-    state?: HttpActionTemplate;
-    pollIntervalMs?: number;
-    stateJsonPath?: string;
-  };
+  httpConfig?: HttpDeviceConfig;
 }
+
+export type UpdateDevicePayload = Partial<CreateDevicePayload>;
 
 export function useDevices() {
   return useQuery({
@@ -60,6 +67,31 @@ export function useCreateDevice() {
     mutationFn: async (payload: CreateDevicePayload) => {
       const { data } = await apiClient.post<Device>("/devices", payload);
       return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["devices"] });
+    },
+  });
+}
+
+export function useUpdateDevice() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, payload }: { id: string; payload: UpdateDevicePayload }) => {
+      const { data } = await apiClient.patch<Device>(`/devices/${id}`, payload);
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["devices"] });
+    },
+  });
+}
+
+export function useDeleteDevice() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      await apiClient.delete(`/devices/${id}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["devices"] });

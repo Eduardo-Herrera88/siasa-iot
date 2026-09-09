@@ -6,6 +6,7 @@ import { PrismaService } from "../prisma/prisma.service";
 import { AdapterRegistry } from "../adapters/adapter-registry.service";
 import { EventLogService } from "../events/event-log.service";
 import { CreateDeviceDto } from "./dto/create-device.dto";
+import { UpdateDeviceDto } from "./dto/update-device.dto";
 import { COMMANDS_QUEUE } from "./devices.constants";
 
 @Injectable()
@@ -57,6 +58,52 @@ export class DevicesService {
     });
 
     return device;
+  }
+
+  async update(id: string, dto: UpdateDeviceDto) {
+    const existing = await this.findOne(id);
+
+    const device = await this.prisma.device.update({
+      where: { id },
+      data: {
+        name: dto.name,
+        protocol: dto.protocol,
+        commandTopic: dto.commandTopic,
+        stateTopic: dto.stateTopic,
+        payloadOn: dto.payloadOn,
+        payloadOff: dto.payloadOff,
+        httpBaseUrl: dto.httpBaseUrl,
+        metadata: dto.httpConfig ? { http: dto.httpConfig as object } : undefined,
+      },
+    });
+
+    // Re-registra el dispositivo en su adaptador para que recargue la config (ej. reinicia el polling HTTP con la nueva plantilla).
+    await this.adapterRegistry.resolve(device.protocol).onDeviceRegistered(device);
+    await this.eventLog.log({
+      type: "device.updated",
+      message: `Dispositivo "${device.name}" actualizado`,
+      deviceId: device.id,
+    });
+
+    if (existing.protocol !== device.protocol) {
+      await this.eventLog.log({
+        type: "device.protocol_changed",
+        message: `Dispositivo "${device.name}" cambio de protocolo ${existing.protocol} -> ${device.protocol}; el adaptador anterior puede seguir escuchando su configuracion previa`,
+        deviceId: device.id,
+      });
+    }
+
+    return this.findOne(device.id);
+  }
+
+  async remove(id: string) {
+    const device = await this.findOne(id);
+    await this.prisma.device.delete({ where: { id } });
+    await this.eventLog.log({
+      type: "device.deleted",
+      message: `Dispositivo "${device.name}" eliminado`,
+      deviceId: id,
+    });
   }
 
   /** Encola el comando; el CommandsProcessor lo despacha al adaptador correspondiente de forma asincrona con reintentos. */

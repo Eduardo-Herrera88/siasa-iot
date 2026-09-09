@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, UseGuards, Version } from "@nestjs/common";
+import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards, Version } from "@nestjs/common";
 import { Role } from "@prisma/client";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 import { RolesGuard } from "../auth/guards/roles.guard";
@@ -7,6 +7,7 @@ import { CurrentUser } from "../auth/decorators/current-user.decorator";
 import type { AuthenticatedUser } from "../auth/auth.types";
 import { DevicesService } from "./devices.service";
 import { CreateDeviceDto } from "./dto/create-device.dto";
+import { UpdateDeviceDto } from "./dto/update-device.dto";
 import { DeviceCommandDto } from "./dto/device-command.dto";
 
 @Controller("devices")
@@ -31,6 +32,20 @@ export class DevicesController {
   @Post()
   create(@Body() dto: CreateDeviceDto) {
     return this.devicesService.create(dto);
+  }
+
+  @Version("1")
+  @Roles(Role.admin)
+  @Patch(":id")
+  update(@Param("id") id: string, @Body() dto: UpdateDeviceDto) {
+    return this.devicesService.update(id, dto);
+  }
+
+  @Version("1")
+  @Roles(Role.admin)
+  @Delete(":id")
+  remove(@Param("id") id: string) {
+    return this.devicesService.remove(id);
   }
 
   @Version("1")

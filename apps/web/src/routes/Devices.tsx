@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useDevices, useSendDeviceCommand } from "../api/devices";
+import { useDeleteDevice, useDevices, useSendDeviceCommand, type Device } from "../api/devices";
 import { useDeviceSocket } from "../ws/useDeviceSocket";
 import { useAuthStore } from "../store/auth.store";
 import AddDeviceForm from "./AddDeviceForm";
@@ -9,9 +9,11 @@ export default function Devices() {
   const navigate = useNavigate();
   const { data: devices, isLoading, isError } = useDevices();
   const sendCommand = useSendDeviceCommand();
+  const deleteDevice = useDeleteDevice();
   const user = useAuthStore((s) => s.user);
   const clear = useAuthStore((s) => s.clear);
   const [showForm, setShowForm] = useState(false);
+  const [editingDevice, setEditingDevice] = useState<Device | null>(null);
 
   useDeviceSocket();
 
@@ -19,6 +21,14 @@ export default function Devices() {
     clear();
     navigate("/login");
   }
+
+  function handleDelete(device: Device) {
+    if (confirm(`¿Eliminar el dispositivo "${device.name}"?`)) {
+      deleteDevice.mutate(device.id);
+    }
+  }
+
+  const formOpen = showForm || editingDevice !== null;
 
   return (
     <div className="mx-auto max-w-4xl p-6">
@@ -31,10 +41,13 @@ export default function Devices() {
         </div>
         <div className="flex gap-2">
           <button
-            onClick={() => setShowForm((v) => !v)}
+            onClick={() => {
+              setEditingDevice(null);
+              setShowForm((v) => !v);
+            }}
             className="rounded-md bg-sky-600 px-3 py-1.5 text-sm hover:bg-sky-500"
           >
-            {showForm ? "Cerrar formulario" : "Agregar dispositivo"}
+            {formOpen ? "Cerrar formulario" : "Agregar dispositivo"}
           </button>
           <button
             onClick={handleLogout}
@@ -45,7 +58,16 @@ export default function Devices() {
         </div>
       </header>
 
-      {showForm && <AddDeviceForm onDone={() => setShowForm(false)} />}
+      {formOpen && (
+        <AddDeviceForm
+          key={editingDevice?.id ?? "new"}
+          device={editingDevice ?? undefined}
+          onDone={() => {
+            setShowForm(false);
+            setEditingDevice(null);
+          }}
+        />
+      )}
 
       {isLoading && <p className="text-slate-400">Cargando...</p>}
       {isError && <p className="text-red-400">No se pudieron cargar los dispositivos.</p>}
@@ -69,7 +91,7 @@ export default function Devices() {
                   ? new Date(device.state.updatedAt).toLocaleString()
                   : "sin datos aun"}
               </p>
-              <div className="flex gap-2">
+              <div className="mb-2 flex gap-2">
                 <button
                   disabled={sendCommand.isPending}
                   onClick={() => sendCommand.mutate({ deviceId: device.id, action: "on" })}
@@ -83,6 +105,23 @@ export default function Devices() {
                   className="flex-1 rounded-md bg-slate-700 py-1.5 text-sm hover:bg-slate-600 disabled:opacity-50"
                 >
                   Apagar
+                </button>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => {
+                    setShowForm(false);
+                    setEditingDevice(device);
+                  }}
+                  className="flex-1 rounded-md bg-slate-800 py-1 text-xs hover:bg-slate-700"
+                >
+                  Editar
+                </button>
+                <button
+                  onClick={() => handleDelete(device)}
+                  className="flex-1 rounded-md bg-slate-800 py-1 text-xs text-red-400 hover:bg-slate-700"
+                >
+                  Eliminar
                 </button>
               </div>
             </div>
