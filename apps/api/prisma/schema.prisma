@@ -1,0 +1,121 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  admin
+  operator
+  viewer
+}
+
+enum DeviceProtocol {
+  mqtt
+  http
+}
+
+enum CommandAction {
+  on
+  off
+}
+
+enum CommandStatus {
+  pending
+  sent
+  acked
+  failed
+}
+
+model User {
+  id           String   @id @default(uuid())
+  username     String   @unique
+  passwordHash String
+  role         Role     @default(viewer)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  refreshTokens RefreshToken[]
+  commands      Command[]
+  eventLogs     EventLog[]
+
+  @@map("users")
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  tokenHash String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  revokedAt DateTime?
+  replacedByTokenHash String?
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@map("refresh_tokens")
+}
+
+model Device {
+  id            String         @id @default(uuid())
+  name          String
+  protocol      DeviceProtocol @default(mqtt)
+  commandTopic  String?
+  stateTopic    String?
+  payloadOn     String         @default("ON")
+  payloadOff    String         @default("OFF")
+  httpBaseUrl   String?
+  metadata      Json?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  state    DeviceState?
+  commands Command[]
+
+  @@map("devices")
+}
+
+model DeviceState {
+  id        String   @id @default(uuid())
+  deviceId  String   @unique
+  device    Device   @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  state     String
+  rawPayload String?
+  updatedAt DateTime @updatedAt
+
+  @@map("device_states")
+}
+
+model Command {
+  id          String        @id @default(uuid())
+  deviceId    String
+  device      Device        @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  action      CommandAction
+  status      CommandStatus @default(pending)
+  requestedBy String?
+  user        User?         @relation(fields: [requestedBy], references: [id], onDelete: SetNull)
+  error       String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@index([deviceId])
+  @@map("commands")
+}
+
+model EventLog {
+  id        String   @id @default(uuid())
+  type      String
+  deviceId  String?
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  message   String
+  payload   Json?
+  createdAt DateTime @default(now())
+
+  @@index([deviceId])
+  @@index([type])
+  @@map("event_logs")
+}

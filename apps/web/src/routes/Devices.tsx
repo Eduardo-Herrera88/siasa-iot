@@ -1,0 +1,81 @@
+import { useNavigate } from "react-router-dom";
+import { useDevices, useSendDeviceCommand } from "../api/devices";
+import { useDeviceSocket } from "../ws/useDeviceSocket";
+import { useAuthStore } from "../store/auth.store";
+
+export default function Devices() {
+  const navigate = useNavigate();
+  const { data: devices, isLoading, isError } = useDevices();
+  const sendCommand = useSendDeviceCommand();
+  const user = useAuthStore((s) => s.user);
+  const clear = useAuthStore((s) => s.clear);
+
+  useDeviceSocket();
+
+  function handleLogout() {
+    clear();
+    navigate("/login");
+  }
+
+  return (
+    <div className="mx-auto max-w-4xl p-6">
+      <header className="mb-6 flex items-center justify-between">
+        <div>
+          <h1 className="text-xl font-semibold">Dispositivos</h1>
+          <p className="text-sm text-slate-400">
+            {user?.username} · {user?.role}
+          </p>
+        </div>
+        <button
+          onClick={handleLogout}
+          className="rounded-md bg-slate-800 px-3 py-1.5 text-sm hover:bg-slate-700"
+        >
+          Cerrar sesion
+        </button>
+      </header>
+
+      {isLoading && <p className="text-slate-400">Cargando...</p>}
+      {isError && <p className="text-red-400">No se pudieron cargar los dispositivos.</p>}
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        {devices?.map((device) => {
+          const isOn = device.state?.state === "on";
+          return (
+            <div key={device.id} className="rounded-xl bg-slate-900 p-5 shadow">
+              <div className="mb-2 flex items-center justify-between">
+                <h2 className="font-medium">{device.name}</h2>
+                <span
+                  className={`h-2.5 w-2.5 rounded-full ${
+                    isOn ? "bg-emerald-400" : "bg-slate-600"
+                  }`}
+                />
+              </div>
+              <p className="mb-4 text-xs text-slate-400">
+                {device.protocol.toUpperCase()} ·{" "}
+                {device.state?.updatedAt
+                  ? new Date(device.state.updatedAt).toLocaleString()
+                  : "sin datos aun"}
+              </p>
+              <div className="flex gap-2">
+                <button
+                  disabled={sendCommand.isPending}
+                  onClick={() => sendCommand.mutate({ deviceId: device.id, action: "on" })}
+                  className="flex-1 rounded-md bg-emerald-600 py-1.5 text-sm hover:bg-emerald-500 disabled:opacity-50"
+                >
+                  Encender
+                </button>
+                <button
+                  disabled={sendCommand.isPending}
+                  onClick={() => sendCommand.mutate({ deviceId: device.id, action: "off" })}
+                  className="flex-1 rounded-md bg-slate-700 py-1.5 text-sm hover:bg-slate-600 disabled:opacity-50"
+                >
+                  Apagar
+                </button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
