@@ -28,6 +28,9 @@ export default function AddDeviceForm({ onDone }: { onDone: () => void }) {
   const [statePath, setStatePath] = useState("");
   const [pollIntervalMs, setPollIntervalMs] = useState("5000");
   const [stateJsonPath, setStateJsonPath] = useState("");
+  const [headersJson, setHeadersJson] = useState("");
+  const [onBodyJson, setOnBodyJson] = useState("");
+  const [offBodyJson, setOffBodyJson] = useState("");
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
@@ -48,13 +51,26 @@ export default function AddDeviceForm({ onDone }: { onDone: () => void }) {
         setError("URL base, ruta de encendido y ruta de apagado son obligatorias para HTTP.");
         return;
       }
+
+      let headers: Record<string, string> | undefined;
+      let onBody: unknown;
+      let offBody: unknown;
+      try {
+        headers = headersJson.trim() ? JSON.parse(headersJson) : undefined;
+        onBody = onBodyJson.trim() ? JSON.parse(onBodyJson) : undefined;
+        offBody = offBodyJson.trim() ? JSON.parse(offBodyJson) : undefined;
+      } catch {
+        setError('Encabezados o cuerpo con JSON invalido. Ejemplo: {"Authorization": "Bearer ..."}');
+        return;
+      }
+
       payload.httpBaseUrl = httpBaseUrl;
       payload.httpConfig = {
-        on: { method: onMethod, path: onPath },
-        off: { method: offMethod, path: offPath },
+        on: { method: onMethod, path: onPath, headers, body: onBody },
+        off: { method: offMethod, path: offPath, headers, body: offBody },
         ...(statePath
           ? {
-              state: { method: stateMethod, path: statePath },
+              state: { method: stateMethod, path: statePath, headers },
               pollIntervalMs: Number(pollIntervalMs) || 5000,
               stateJsonPath: stateJsonPath || undefined,
             }
@@ -142,7 +158,7 @@ export default function AddDeviceForm({ onDone }: { onDone: () => void }) {
               </select>
               <input
                 className={inputClass}
-                placeholder="/cm?cmnd=Power%20On"
+                placeholder="/cm?cmnd=Power%20On o /api/services/switch/turn_on"
                 value={onPath}
                 onChange={(e) => setOnPath(e.target.value)}
               />
@@ -155,11 +171,31 @@ export default function AddDeviceForm({ onDone }: { onDone: () => void }) {
               </select>
               <input
                 className={inputClass}
-                placeholder="/cm?cmnd=Power%20Off"
+                placeholder="/cm?cmnd=Power%20Off o /api/services/switch/turn_off"
                 value={offPath}
                 onChange={(e) => setOffPath(e.target.value)}
               />
             </div>
+            <div>
+              <label className={labelClass}>Cuerpo JSON al encender (opcional, ej. {"{"}"entity_id": "switch.xxx"{"}"})</label>
+              <input className={inputClass} value={onBodyJson} onChange={(e) => setOnBodyJson(e.target.value)} />
+            </div>
+            <div>
+              <label className={labelClass}>Cuerpo JSON al apagar (opcional)</label>
+              <input className={inputClass} value={offBodyJson} onChange={(e) => setOffBodyJson(e.target.value)} />
+            </div>
+          </div>
+
+          <div>
+            <label className={labelClass}>
+              Encabezados HTTP compartidos (JSON, opcional) - ej. para un token: {"{"}"Authorization": "Bearer ..."{"}"}
+            </label>
+            <input
+              className={inputClass}
+              placeholder='{"Authorization": "Bearer ..."}'
+              value={headersJson}
+              onChange={(e) => setHeadersJson(e.target.value)}
+            />
           </div>
 
           <p className="text-xs text-slate-500">Lectura de estado (opcional, para reflejar cambios en tiempo real):</p>
