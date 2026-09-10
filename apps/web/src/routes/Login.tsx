@@ -28,8 +28,12 @@ export default function Login() {
         user: me.data,
       });
       navigate("/devices");
-    } catch {
-      setError("Usuario o contraseña incorrectos");
+    } catch (err) {
+      if (axios.isAxiosError(err) && err.response) {
+        setError("Usuario o contraseña incorrectos");
+      } else {
+        setError("No se pudo conectar con el servidor. Verifica que la API este corriendo.");
+      }
     } finally {
       setLoading(false);
     }
