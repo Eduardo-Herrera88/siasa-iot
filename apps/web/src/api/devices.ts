@@ -141,6 +141,12 @@ export function useImportHomeAssistant() {
   });
 }
 
+/**
+ * Aplica el nuevo estado al toggle de inmediato (optimista) en vez de esperar la respuesta
+ * del backend: el comando real se despacha async via BullMQ y el estado confirmado llega
+ * poco despues por WebSocket (useDeviceSocket) o el poll de 15s, que sobreescriben este valor.
+ * Si el comando falla, se revierte al valor anterior.
+ */
 export function useSendDeviceCommand() {
   const queryClient = useQueryClient();
   return useMutation({
@@ -148,8 +154,31 @@ export function useSendDeviceCommand() {
       const { data } = await apiClient.post(`/devices/${deviceId}/command`, { action });
       return data;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["devices"] });
+    onMutate: async ({ deviceId, action }) => {
+      await queryClient.cancelQueries({ queryKey: ["devices"] });
+      const previous = queryClient.getQueryData<Device[]>(["devices"]);
+
+      queryClient.setQueryData<Device[]>(["devices"], (old) =>
+        old?.map((device) =>
+          device.id === deviceId
+            ? {
+                ...device,
+                state: {
+                  state: action,
+                  rawPayload: device.state?.rawPayload ?? null,
+                  updatedAt: new Date().toISOString(),
+                },
+              }
+            : device,
+        ),
+      );
+
+      return { previous };
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(["devices"], context.previous);
+      }
     },
   });
 }
