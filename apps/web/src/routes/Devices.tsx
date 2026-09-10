@@ -1,10 +1,44 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useDeleteDevice, useDevices, useSendDeviceCommand, type Device } from "../api/devices";
 import { useDeviceSocket } from "../ws/useDeviceSocket";
 import { useAuthStore } from "../store/auth.store";
 import AddDeviceForm from "./AddDeviceForm";
 import ImportHomeAssistant from "./ImportHomeAssistant";
+import ToggleSwitch from "../components/ToggleSwitch";
+
+function DeviceRow({
+  device,
+  onToggle,
+  onEdit,
+  onDelete,
+  pending,
+}: {
+  device: Device;
+  onToggle: (device: Device, next: boolean) => void;
+  onEdit: (device: Device) => void;
+  onDelete: (device: Device) => void;
+  pending: boolean;
+}) {
+  const isOn = device.state?.state === "on";
+  return (
+    <div className="flex items-center justify-between gap-3 border-b border-slate-800 py-2.5 last:border-b-0">
+      <div className="flex min-w-0 items-center gap-2">
+        <span className={`h-2 w-2 shrink-0 rounded-full ${isOn ? "bg-emerald-400" : "bg-slate-600"}`} />
+        <span className="truncate text-sm">{device.name}</span>
+      </div>
+      <div className="flex shrink-0 items-center gap-3">
+        <ToggleSwitch checked={isOn} disabled={pending} onChange={(next) => onToggle(device, next)} />
+        <button onClick={() => onEdit(device)} className="text-xs text-slate-500 hover:text-slate-300" title="Editar">
+          ✎
+        </button>
+        <button onClick={() => onDelete(device)} className="text-xs text-slate-500 hover:text-red-400" title="Eliminar">
+          ✕
+        </button>
+      </div>
+    </div>
+  );
+}
 
 export default function Devices() {
   const navigate = useNavigate();
@@ -19,6 +53,21 @@ export default function Devices() {
 
   useDeviceSocket();
 
+  const { groups, singles } = useMemo(() => {
+    const groups = new Map<string, Device[]>();
+    const singles: Device[] = [];
+    for (const device of devices ?? []) {
+      const key = device.metadata?.group?.key;
+      if (key) {
+        if (!groups.has(key)) groups.set(key, []);
+        groups.get(key)!.push(device);
+      } else {
+        singles.push(device);
+      }
+    }
+    return { groups, singles };
+  }, [devices]);
+
   function handleLogout() {
     clear();
     navigate("/login");
@@ -28,6 +77,16 @@ export default function Devices() {
     if (confirm(`¿Eliminar el dispositivo "${device.name}"?`)) {
       deleteDevice.mutate(device.id);
     }
+  }
+
+  function handleToggle(device: Device, next: boolean) {
+    sendCommand.mutate({ deviceId: device.id, action: next ? "on" : "off" });
+  }
+
+  function handleEdit(device: Device) {
+    setShowForm(false);
+    setShowImport(false);
+    setEditingDevice(device);
   }
 
   const formOpen = showForm || editingDevice !== null;
@@ -88,60 +147,48 @@ export default function Devices() {
       {isError && <p className="text-red-400">No se pudieron cargar los dispositivos.</p>}
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        {devices?.map((device) => {
-          const isOn = device.state?.state === "on";
+        {[...groups.entries()].map(([key, members]) => {
+          const title = members[0].metadata?.group?.label || members[0].name;
           return (
-            <div key={device.id} className="rounded-xl bg-slate-900 p-5 shadow">
-              <div className="mb-2 flex items-center justify-between">
-                <h2 className="font-medium">{device.name}</h2>
-                <span
-                  className={`h-2.5 w-2.5 rounded-full ${
-                    isOn ? "bg-emerald-400" : "bg-slate-600"
-                  }`}
-                />
+            <div key={key} className="rounded-xl bg-slate-900 p-5 shadow">
+              <div className="mb-3 flex items-center justify-between">
+                <h2 className="font-medium">{title}</h2>
+                <span className="text-xs text-slate-500">{members[0].protocol.toUpperCase()}</span>
               </div>
-              <p className="mb-4 text-xs text-slate-400">
-                {device.protocol.toUpperCase()} ·{" "}
-                {device.state?.updatedAt
-                  ? new Date(device.state.updatedAt).toLocaleString()
-                  : "sin datos aun"}
-              </p>
-              <div className="mb-2 flex gap-2">
-                <button
-                  disabled={sendCommand.isPending}
-                  onClick={() => sendCommand.mutate({ deviceId: device.id, action: "on" })}
-                  className="flex-1 rounded-md bg-emerald-600 py-1.5 text-sm hover:bg-emerald-500 disabled:opacity-50"
-                >
-                  Encender
-                </button>
-                <button
-                  disabled={sendCommand.isPending}
-                  onClick={() => sendCommand.mutate({ deviceId: device.id, action: "off" })}
-                  className="flex-1 rounded-md bg-slate-700 py-1.5 text-sm hover:bg-slate-600 disabled:opacity-50"
-                >
-                  Apagar
-                </button>
-              </div>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => {
-                    setShowForm(false);
-                    setEditingDevice(device);
-                  }}
-                  className="flex-1 rounded-md bg-slate-800 py-1 text-xs hover:bg-slate-700"
-                >
-                  Editar
-                </button>
-                <button
-                  onClick={() => handleDelete(device)}
-                  className="flex-1 rounded-md bg-slate-800 py-1 text-xs text-red-400 hover:bg-slate-700"
-                >
-                  Eliminar
-                </button>
+              <div>
+                {members.map((device) => (
+                  <DeviceRow
+                    key={device.id}
+                    device={device}
+                    onToggle={handleToggle}
+                    onEdit={handleEdit}
+                    onDelete={handleDelete}
+                    pending={sendCommand.isPending}
+                  />
+                ))}
               </div>
             </div>
           );
         })}
+
+        {singles.map((device) => (
+          <div key={device.id} className="rounded-xl bg-slate-900 p-5 shadow">
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="font-medium">{device.name}</h2>
+              <span className="text-xs text-slate-500">
+                {device.protocol.toUpperCase()} ·{" "}
+                {device.state?.updatedAt ? new Date(device.state.updatedAt).toLocaleTimeString() : "sin datos"}
+              </span>
+            </div>
+            <DeviceRow
+              device={device}
+              onToggle={handleToggle}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+              pending={sendCommand.isPending}
+            />
+          </div>
+        ))}
       </div>
     </div>
   );

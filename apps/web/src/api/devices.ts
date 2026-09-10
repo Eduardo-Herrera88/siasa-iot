@@ -24,6 +24,11 @@ export interface HttpDeviceConfig {
   stateJsonPath?: string;
 }
 
+export interface DeviceGroup {
+  key: string;
+  label?: string;
+}
+
 export interface Device {
   id: string;
   name: string;
@@ -33,7 +38,7 @@ export interface Device {
   httpBaseUrl: string | null;
   payloadOn: string;
   payloadOff: string;
-  metadata: { http?: HttpDeviceConfig } | null;
+  metadata: { http?: HttpDeviceConfig; group?: DeviceGroup } | null;
   state: DeviceState | null;
 }
 
@@ -46,6 +51,7 @@ export interface CreateDevicePayload {
   stateTopic?: string;
   httpBaseUrl?: string;
   httpConfig?: HttpDeviceConfig;
+  group?: DeviceGroup;
 }
 
 export type UpdateDevicePayload = Partial<CreateDevicePayload>;

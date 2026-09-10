@@ -51,12 +51,14 @@ export class HomeAssistantImportService {
 
     for (const entity of dto.entities) {
       const domain = entity.entityId.split(".")[0];
+      const groupKey = this.deriveGroupKey(entity.entityId);
       const createDto: CreateDeviceDto = {
         name: entity.name,
         protocol: DeviceProtocol.http,
         payloadOn: "on",
         payloadOff: "off",
         httpBaseUrl: dto.baseUrl,
+        group: groupKey ? { key: groupKey, label: entity.name.replace(/\s*\d+$/, "").trim() || entity.name } : undefined,
         httpConfig: {
           on: {
             method: HttpMethod.POST,
@@ -89,6 +91,17 @@ export class HomeAssistantImportService {
     }
 
     return { created, failed };
+  }
+
+  /**
+   * Detecta si la entidad es un canal de un dispositivo multi-canal (ej. "switch.sonoff_100226c07a_1",
+   * "..._2", "..._3" son 3 salidas del mismo switch fisico) para poder agruparlas en una sola tarjeta.
+   * Entidades sin sufijo numerico (dispositivos de un solo canal) no se agrupan.
+   */
+  private deriveGroupKey(entityId: string): string | undefined {
+    const withoutDomain = entityId.split(".")[1] ?? entityId;
+    const match = withoutDomain.match(/^(.+)_\d+$/);
+    return match ? match[1] : undefined;
   }
 
   private async fetchStates(baseUrl: string, token: string): Promise<HaState[]> {

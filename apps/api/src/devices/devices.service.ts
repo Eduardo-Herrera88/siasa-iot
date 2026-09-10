@@ -37,6 +37,10 @@ export class DevicesService {
   }
 
   async create(dto: CreateDeviceDto) {
+    const metadata: Record<string, unknown> = {};
+    if (dto.httpConfig) metadata.http = dto.httpConfig;
+    if (dto.group) metadata.group = dto.group;
+
     const device = await this.prisma.device.create({
       data: {
         name: dto.name,
@@ -46,7 +50,7 @@ export class DevicesService {
         payloadOn: dto.payloadOn ?? "ON",
         payloadOff: dto.payloadOff ?? "OFF",
         httpBaseUrl: dto.httpBaseUrl,
-        metadata: dto.httpConfig ? { http: dto.httpConfig as object } : undefined,
+        metadata: Object.keys(metadata).length ? (metadata as object) : undefined,
       },
     });
 
@@ -63,6 +67,13 @@ export class DevicesService {
   async update(id: string, dto: UpdateDeviceDto) {
     const existing = await this.findOne(id);
 
+    let metadata: Record<string, unknown> | undefined;
+    if (dto.httpConfig || dto.group) {
+      metadata = { ...((existing.metadata as Record<string, unknown> | null) ?? {}) };
+      if (dto.httpConfig) metadata.http = dto.httpConfig;
+      if (dto.group) metadata.group = dto.group;
+    }
+
     const device = await this.prisma.device.update({
       where: { id },
       data: {
@@ -73,7 +84,7 @@ export class DevicesService {
         payloadOn: dto.payloadOn,
         payloadOff: dto.payloadOff,
         httpBaseUrl: dto.httpBaseUrl,
-        metadata: dto.httpConfig ? { http: dto.httpConfig as object } : undefined,
+        metadata: metadata as object | undefined,
       },
     });
 

@@ -2,6 +2,7 @@ import { Type } from "class-transformer";
 import { IsEnum, IsOptional, IsString, MinLength, ValidateNested } from "class-validator";
 import { DeviceProtocol } from "@prisma/client";
 import { HttpDeviceConfigDto } from "./http-device-config.dto";
+import { DeviceGroupDto } from "./device-group.dto";
 
 /** Actualizacion parcial de un dispositivo. Si se envia httpConfig, reemplaza la configuracion HTTP completa. */
 export class UpdateDeviceDto {
@@ -38,4 +39,9 @@ export class UpdateDeviceDto {
   @ValidateNested()
   @Type(() => HttpDeviceConfigDto)
   httpConfig?: HttpDeviceConfigDto;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => DeviceGroupDto)
+  group?: DeviceGroupDto;
 }
