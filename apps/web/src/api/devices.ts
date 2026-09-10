@@ -99,6 +99,42 @@ export function useDeleteDevice() {
   });
 }
 
+export interface HomeAssistantEntity {
+  entityId: string;
+  name: string;
+  domain: string;
+  state: string;
+}
+
+export function useDiscoverHomeAssistant() {
+  return useMutation({
+    mutationFn: async (params: { baseUrl: string; token: string }) => {
+      const { data } = await apiClient.post<HomeAssistantEntity[]>("/devices/home-assistant/discover", params);
+      return data;
+    },
+  });
+}
+
+export function useImportHomeAssistant() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (params: {
+      baseUrl: string;
+      token: string;
+      entities: { entityId: string; name: string }[];
+    }) => {
+      const { data } = await apiClient.post<{ created: Device[]; failed: { entityId: string; error: string }[] }>(
+        "/devices/home-assistant/import",
+        params,
+      );
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["devices"] });
+    },
+  });
+}
+
 export function useSendDeviceCommand() {
   const queryClient = useQueryClient();
   return useMutation({

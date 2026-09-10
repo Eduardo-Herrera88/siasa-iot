@@ -4,6 +4,7 @@ import { useDeleteDevice, useDevices, useSendDeviceCommand, type Device } from "
 import { useDeviceSocket } from "../ws/useDeviceSocket";
 import { useAuthStore } from "../store/auth.store";
 import AddDeviceForm from "./AddDeviceForm";
+import ImportHomeAssistant from "./ImportHomeAssistant";
 
 export default function Devices() {
   const navigate = useNavigate();
@@ -13,6 +14,7 @@ export default function Devices() {
   const user = useAuthStore((s) => s.user);
   const clear = useAuthStore((s) => s.clear);
   const [showForm, setShowForm] = useState(false);
+  const [showImport, setShowImport] = useState(false);
   const [editingDevice, setEditingDevice] = useState<Device | null>(null);
 
   useDeviceSocket();
@@ -42,12 +44,23 @@ export default function Devices() {
         <div className="flex gap-2">
           <button
             onClick={() => {
+              setShowImport(false);
               setEditingDevice(null);
               setShowForm((v) => !v);
             }}
             className="rounded-md bg-sky-600 px-3 py-1.5 text-sm hover:bg-sky-500"
           >
             {formOpen ? "Cerrar formulario" : "Agregar dispositivo"}
+          </button>
+          <button
+            onClick={() => {
+              setShowForm(false);
+              setEditingDevice(null);
+              setShowImport((v) => !v);
+            }}
+            className="rounded-md bg-emerald-700 px-3 py-1.5 text-sm hover:bg-emerald-600"
+          >
+            {showImport ? "Cerrar importador" : "Importar desde Home Assistant"}
           </button>
           <button
             onClick={handleLogout}
@@ -57,6 +70,8 @@ export default function Devices() {
           </button>
         </div>
       </header>
+
+      {showImport && <ImportHomeAssistant onDone={() => setShowImport(false)} />}
 
       {formOpen && (
         <AddDeviceForm

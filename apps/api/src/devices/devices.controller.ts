@@ -6,14 +6,19 @@ import { Roles } from "../auth/decorators/roles.decorator";
 import { CurrentUser } from "../auth/decorators/current-user.decorator";
 import type { AuthenticatedUser } from "../auth/auth.types";
 import { DevicesService } from "./devices.service";
+import { HomeAssistantImportService } from "./home-assistant-import.service";
 import { CreateDeviceDto } from "./dto/create-device.dto";
 import { UpdateDeviceDto } from "./dto/update-device.dto";
 import { DeviceCommandDto } from "./dto/device-command.dto";
+import { DiscoverHomeAssistantDto, ImportHomeAssistantDto } from "./dto/home-assistant-import.dto";
 
 @Controller("devices")
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class DevicesController {
-  constructor(private readonly devicesService: DevicesService) {}
+  constructor(
+    private readonly devicesService: DevicesService,
+    private readonly haImportService: HomeAssistantImportService,
+  ) {}
 
   @Version("1")
   @Get()
@@ -32,6 +37,20 @@ export class DevicesController {
   @Post()
   create(@Body() dto: CreateDeviceDto) {
     return this.devicesService.create(dto);
+  }
+
+  @Version("1")
+  @Roles(Role.admin)
+  @Post("home-assistant/discover")
+  discoverHomeAssistant(@Body() dto: DiscoverHomeAssistantDto) {
+    return this.haImportService.discover(dto);
+  }
+
+  @Version("1")
+  @Roles(Role.admin)
+  @Post("home-assistant/import")
+  importHomeAssistant(@Body() dto: ImportHomeAssistantDto) {
+    return this.haImportService.import(dto);
   }
 
   @Version("1")
