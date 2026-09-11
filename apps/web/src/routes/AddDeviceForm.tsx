@@ -7,6 +7,7 @@ import {
   type DeviceProtocol,
   type HttpMethod,
 } from "../api/devices";
+import { extractErrorMessage } from "../api/errors";
 
 const inputClass =
   "w-full rounded-md bg-slate-800 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-sky-500";
@@ -124,7 +125,9 @@ export default function AddDeviceForm({ device, onDone }: { device?: Device; onD
       }
       onDone();
     } catch (err) {
-      setError(`No se pudo ${isEditing ? "actualizar" : "crear"} el dispositivo. Revisa los datos e intenta de nuevo.`);
+      setError(
+        extractErrorMessage(err, `No se pudo ${isEditing ? "actualizar" : "crear"} el dispositivo. Revisa los datos e intenta de nuevo.`),
+      );
     }
   }
 

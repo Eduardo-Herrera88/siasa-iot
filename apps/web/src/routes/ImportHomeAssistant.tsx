@@ -1,5 +1,6 @@
 import { FormEvent, useMemo, useState } from "react";
 import { useDiscoverHomeAssistant, useImportHomeAssistant, type HomeAssistantEntity } from "../api/devices";
+import { extractErrorMessage } from "../api/errors";
 
 const inputClass =
   "w-full rounded-md bg-slate-800 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-sky-500";
@@ -33,8 +34,8 @@ export default function ImportHomeAssistant({ onDone }: { onDone: () => void }) 
       const found = await discover.mutateAsync({ baseUrl, token });
       setEntities(found);
       setSelected(new Set());
-    } catch {
-      setError("No se pudo conectar. Revisa la URL base y el token de Home Assistant.");
+    } catch (err) {
+      setError(extractErrorMessage(err, "No se pudo conectar. Revisa la URL base y el token de Home Assistant."));
     }
   }
 
@@ -72,8 +73,8 @@ export default function ImportHomeAssistant({ onDone }: { onDone: () => void }) 
       if (res.failed.length === 0) {
         setTimeout(onDone, 1200);
       }
-    } catch {
-      setError("Fallo la importacion. Intenta de nuevo.");
+    } catch (err) {
+      setError(extractErrorMessage(err, "Fallo la importacion. Intenta de nuevo."));
     }
   }
 

@@ -1,5 +1,6 @@
 import { FormEvent, useMemo, useState } from "react";
 import { useDiscoverZigbee2Mqtt, useImportZigbee2Mqtt, type ZigbeeEntity } from "../api/devices";
+import { extractErrorMessage } from "../api/errors";
 
 const inputClass =
   "w-full rounded-md bg-slate-800 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-sky-500";
@@ -44,8 +45,7 @@ export default function ImportMqtt({ onDone }: { onDone: () => void }) {
       setEntities(found);
       setSelected(new Set());
     } catch (err) {
-      const message = err instanceof Error ? err.message : "";
-      setError(`No se pudo conectar al broker MQTT o Zigbee2MQTT no respondio. ${message}`.trim());
+      setError(extractErrorMessage(err));
     }
   }
 
@@ -83,8 +83,8 @@ export default function ImportMqtt({ onDone }: { onDone: () => void }) {
       if (res.failed.length === 0) {
         setTimeout(onDone, 1200);
       }
-    } catch {
-      setError("Fallo la importacion. Intenta de nuevo.");
+    } catch (err) {
+      setError(extractErrorMessage(err, "Fallo la importacion. Intenta de nuevo."));
     }
   }
 
