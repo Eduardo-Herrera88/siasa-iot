@@ -16,6 +16,7 @@ enum Role {
 enum DeviceProtocol {
   mqtt
   http
+  ewelink
 }
 
 enum CommandAction {

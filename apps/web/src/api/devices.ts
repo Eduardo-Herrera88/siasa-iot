@@ -29,22 +29,32 @@ export interface DeviceGroup {
   label?: string;
 }
 
+export interface EwelinkDeviceConfig {
+  deviceId: string;
+  devicekey: string;
+  host: string;
+  port?: number;
+  channel?: number;
+}
+
+export type DeviceProtocol = "mqtt" | "http" | "ewelink";
+
 export interface Device {
   id: string;
   name: string;
-  protocol: "mqtt" | "http";
+  protocol: DeviceProtocol;
   commandTopic: string | null;
   stateTopic: string | null;
   httpBaseUrl: string | null;
   payloadOn: string;
   payloadOff: string;
-  metadata: { http?: HttpDeviceConfig; group?: DeviceGroup; hidden?: boolean } | null;
+  metadata: { http?: HttpDeviceConfig; group?: DeviceGroup; hidden?: boolean; ewelink?: EwelinkDeviceConfig } | null;
   state: DeviceState | null;
 }
 
 export interface CreateDevicePayload {
   name: string;
-  protocol: "mqtt" | "http";
+  protocol: DeviceProtocol;
   payloadOn?: string;
   payloadOff?: string;
   commandTopic?: string;
@@ -53,6 +63,7 @@ export interface CreateDevicePayload {
   httpConfig?: HttpDeviceConfig;
   group?: DeviceGroup;
   hidden?: boolean;
+  ewelinkConfig?: EwelinkDeviceConfig;
 }
 
 export type UpdateDevicePayload = Partial<CreateDevicePayload>;

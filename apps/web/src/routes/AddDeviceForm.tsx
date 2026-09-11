@@ -4,6 +4,7 @@ import {
   useUpdateDevice,
   type CreateDevicePayload,
   type Device,
+  type DeviceProtocol,
   type HttpMethod,
 } from "../api/devices";
 
@@ -21,8 +22,9 @@ export default function AddDeviceForm({ device, onDone }: { device?: Device; onD
   const createDevice = useCreateDevice();
   const updateDevice = useUpdateDevice();
   const httpConfig = device?.metadata?.http;
+  const ewelinkConfig = device?.metadata?.ewelink;
 
-  const [protocol, setProtocol] = useState<"mqtt" | "http">(device?.protocol ?? "mqtt");
+  const [protocol, setProtocol] = useState<DeviceProtocol>(device?.protocol ?? "mqtt");
   const [name, setName] = useState(device?.name ?? "");
   const [error, setError] = useState<string | null>(null);
 
@@ -47,6 +49,15 @@ export default function AddDeviceForm({ device, onDone }: { device?: Device; onD
   const [onBodyJson, setOnBodyJson] = useState(jsonOrEmpty(httpConfig?.on.body));
   const [offBodyJson, setOffBodyJson] = useState(jsonOrEmpty(httpConfig?.off.body));
 
+  // ewelink (LAN directo, sin nube ni Home Assistant)
+  const [ewDeviceId, setEwDeviceId] = useState(ewelinkConfig?.deviceId ?? "");
+  const [ewDeviceKey, setEwDeviceKey] = useState(ewelinkConfig?.devicekey ?? "");
+  const [ewHost, setEwHost] = useState(ewelinkConfig?.host ?? "");
+  const [ewPort, setEwPort] = useState(String(ewelinkConfig?.port ?? 8081));
+  const [ewChannel, setEwChannel] = useState(
+    ewelinkConfig?.channel !== undefined ? String(ewelinkConfig.channel) : "",
+  );
+
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
     setError(null);
@@ -61,6 +72,18 @@ export default function AddDeviceForm({ device, onDone }: { device?: Device; onD
     if (protocol === "mqtt") {
       payload.commandTopic = commandTopic || undefined;
       payload.stateTopic = stateTopic || undefined;
+    } else if (protocol === "ewelink") {
+      if (!ewDeviceId || !ewDeviceKey || !ewHost) {
+        setError("deviceId, devicekey y host son obligatorios para eWeLink LAN.");
+        return;
+      }
+      payload.ewelinkConfig = {
+        deviceId: ewDeviceId,
+        devicekey: ewDeviceKey,
+        host: ewHost,
+        port: ewPort ? Number(ewPort) : undefined,
+        channel: ewChannel.trim() !== "" ? Number(ewChannel) : undefined,
+      };
     } else {
       if (!httpBaseUrl || !onPath || !offPath) {
         setError("URL base, ruta de encendido y ruta de apagado son obligatorias para HTTP.");
@@ -121,10 +144,11 @@ export default function AddDeviceForm({ device, onDone }: { device?: Device; onD
           <select
             className={inputClass}
             value={protocol}
-            onChange={(e) => setProtocol(e.target.value as "mqtt" | "http")}
+            onChange={(e) => setProtocol(e.target.value as DeviceProtocol)}
           >
             <option value="mqtt">MQTT</option>
             <option value="http">HTTP (Tasmota, Shelly, ESPHome, REST, Home Assistant...)</option>
+            <option value="ewelink">eWeLink LAN directo (Sonoff, sin nube ni Home Assistant)</option>
           </select>
         </div>
       </div>
@@ -156,6 +180,55 @@ export default function AddDeviceForm({ device, onDone }: { device?: Device; onD
           <div>
             <label className={labelClass}>Payload "apagado"</label>
             <input className={inputClass} value={payloadOff} onChange={(e) => setPayloadOff(e.target.value)} />
+          </div>
+        </div>
+      ) : protocol === "ewelink" ? (
+        <div className="mb-4 space-y-4">
+          <p className="text-xs text-slate-500">
+            Control 100% local por red, sin pasar por la nube de eWeLink ni por Home Assistant. La devicekey se
+            obtiene una sola vez de tu cuenta eWeLink (ej. desde el almacenamiento de una integracion existente).
+          </p>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <label className={labelClass}>Device ID</label>
+              <input
+                className={inputClass}
+                placeholder="10021512ef"
+                value={ewDeviceId}
+                onChange={(e) => setEwDeviceId(e.target.value)}
+              />
+            </div>
+            <div>
+              <label className={labelClass}>Device Key (clave AES local)</label>
+              <input
+                className={inputClass}
+                type="password"
+                value={ewDeviceKey}
+                onChange={(e) => setEwDeviceKey(e.target.value)}
+              />
+            </div>
+            <div>
+              <label className={labelClass}>Host / IP en tu red local</label>
+              <input
+                className={inputClass}
+                placeholder="10.3.0.45"
+                value={ewHost}
+                onChange={(e) => setEwHost(e.target.value)}
+              />
+            </div>
+            <div>
+              <label className={labelClass}>Puerto</label>
+              <input className={inputClass} type="number" value={ewPort} onChange={(e) => setEwPort(e.target.value)} />
+            </div>
+            <div>
+              <label className={labelClass}>Canal (solo switches multi-canal, ej. 0, 1, 2)</label>
+              <input
+                className={inputClass}
+                placeholder="dejar vacio si es un solo canal"
+                value={ewChannel}
+                onChange={(e) => setEwChannel(e.target.value)}
+              />
+            </div>
           </div>
         </div>
       ) : (

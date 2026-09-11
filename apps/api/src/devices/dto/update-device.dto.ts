@@ -3,6 +3,7 @@ import { IsBoolean, IsEnum, IsOptional, IsString, MinLength, ValidateNested } fr
 import { DeviceProtocol } from "@prisma/client";
 import { HttpDeviceConfigDto } from "./http-device-config.dto";
 import { DeviceGroupDto } from "./device-group.dto";
+import { EwelinkDeviceConfigDto } from "./ewelink-device-config.dto";
 
 /** Actualizacion parcial de un dispositivo. Si se envia httpConfig, reemplaza la configuracion HTTP completa. */
 export class UpdateDeviceDto {
@@ -48,4 +49,9 @@ export class UpdateDeviceDto {
   @IsOptional()
   @IsBoolean()
   hidden?: boolean;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => EwelinkDeviceConfigDto)
+  ewelinkConfig?: EwelinkDeviceConfigDto;
 }

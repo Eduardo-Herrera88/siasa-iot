@@ -3,6 +3,7 @@ import { IsBoolean, IsEnum, IsOptional, IsString, MinLength, ValidateIf, Validat
 import { DeviceProtocol } from "@prisma/client";
 import { HttpDeviceConfigDto } from "./http-device-config.dto";
 import { DeviceGroupDto } from "./device-group.dto";
+import { EwelinkDeviceConfigDto } from "./ewelink-device-config.dto";
 
 export class CreateDeviceDto {
   @IsString()
@@ -49,4 +50,10 @@ export class CreateDeviceDto {
   @IsOptional()
   @IsBoolean()
   hidden?: boolean;
+
+  /** Requerido cuando protocol = ewelink: control LAN directo, sin nube ni Home Assistant. */
+  @ValidateIf((dto: CreateDeviceDto) => dto.protocol === DeviceProtocol.ewelink)
+  @ValidateNested()
+  @Type(() => EwelinkDeviceConfigDto)
+  ewelinkConfig?: EwelinkDeviceConfigDto;
 }
