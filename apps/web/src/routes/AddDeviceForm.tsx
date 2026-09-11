@@ -8,6 +8,7 @@ import {
   type HttpMethod,
 } from "../api/devices";
 import { extractErrorMessage } from "../api/errors";
+import ThinkingIndicator from "../components/ThinkingIndicator";
 
 const inputClass =
   "w-full rounded-md bg-slate-800 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-sky-500";
@@ -344,8 +345,9 @@ export default function AddDeviceForm({ device, onDone }: { device?: Device; onD
         <button
           type="submit"
           disabled={isPending}
-          className="rounded-md bg-sky-600 px-4 py-2 text-sm font-medium hover:bg-sky-500 disabled:opacity-50"
+          className="flex items-center gap-2 rounded-md bg-sky-600 px-4 py-2 text-sm font-medium hover:bg-sky-500 disabled:opacity-50"
         >
+          {isPending && <ThinkingIndicator size={16} />}
           {isPending ? "Guardando..." : isEditing ? "Guardar cambios" : "Guardar dispositivo"}
         </button>
         <button

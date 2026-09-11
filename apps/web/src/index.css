@@ -16,3 +16,43 @@ body {
     transform: translateY(0);
   }
 }
+
+@keyframes ti-node-pulse {
+  0%,
+  100% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes ti-core-pulse {
+  0%,
+  100% {
+    transform: scale(0.85);
+    opacity: 0.75;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 1;
+  }
+}
+
+@keyframes ti-flow {
+  to {
+    stroke-dashoffset: -24;
+  }
+}
+
+@keyframes ti-glow {
+  0%,
+  100% {
+    opacity: 0.3;
+    transform: scale(0.9);
+  }
+  50% {
+    opacity: 0.6;
+    transform: scale(1.08);
+  }
+}

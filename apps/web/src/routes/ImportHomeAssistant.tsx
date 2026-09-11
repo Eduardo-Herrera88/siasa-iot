@@ -1,6 +1,7 @@
 import { FormEvent, useMemo, useState } from "react";
 import { useDiscoverHomeAssistant, useImportHomeAssistant, type HomeAssistantEntity } from "../api/devices";
 import { extractErrorMessage } from "../api/errors";
+import ThinkingIndicator from "../components/ThinkingIndicator";
 
 const inputClass =
   "w-full rounded-md bg-slate-800 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-sky-500";
@@ -108,8 +109,9 @@ export default function ImportHomeAssistant({ onDone }: { onDone: () => void }) 
           <button
             type="submit"
             disabled={discover.isPending}
-            className="w-full rounded-md bg-sky-600 px-4 py-2 text-sm font-medium hover:bg-sky-500 disabled:opacity-50 sm:w-auto"
+            className="flex w-full items-center justify-center gap-2 rounded-md bg-sky-600 px-4 py-2 text-sm font-medium hover:bg-sky-500 disabled:opacity-50 sm:w-auto"
           >
+            {discover.isPending && <ThinkingIndicator size={16} />}
             {discover.isPending ? "Buscando..." : "Buscar dispositivos"}
           </button>
         </div>
@@ -182,8 +184,9 @@ export default function ImportHomeAssistant({ onDone }: { onDone: () => void }) 
             type="button"
             onClick={handleImport}
             disabled={selected.size === 0 || importDevices.isPending}
-            className="rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium hover:bg-emerald-500 disabled:opacity-50"
+            className="flex items-center gap-2 rounded-md bg-emerald-600 px-4 py-2 text-sm font-medium hover:bg-emerald-500 disabled:opacity-50"
           >
+            {importDevices.isPending && <ThinkingIndicator size={16} />}
             {importDevices.isPending ? "Importando..." : `Importar seleccionados (${selected.size})`}
           </button>
         </>
