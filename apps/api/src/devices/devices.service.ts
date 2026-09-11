@@ -40,6 +40,7 @@ export class DevicesService {
     const metadata: Record<string, unknown> = {};
     if (dto.httpConfig) metadata.http = dto.httpConfig;
     if (dto.group) metadata.group = dto.group;
+    if (dto.hidden !== undefined) metadata.hidden = dto.hidden;
 
     const device = await this.prisma.device.create({
       data: {
@@ -68,10 +69,11 @@ export class DevicesService {
     const existing = await this.findOne(id);
 
     let metadata: Record<string, unknown> | undefined;
-    if (dto.httpConfig || dto.group) {
+    if (dto.httpConfig || dto.group || dto.hidden !== undefined) {
       metadata = { ...((existing.metadata as Record<string, unknown> | null) ?? {}) };
       if (dto.httpConfig) metadata.http = dto.httpConfig;
       if (dto.group) metadata.group = dto.group;
+      if (dto.hidden !== undefined) metadata.hidden = dto.hidden;
     }
 
     const device = await this.prisma.device.update({

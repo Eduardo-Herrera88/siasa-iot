@@ -1,5 +1,5 @@
 import { Type } from "class-transformer";
-import { IsEnum, IsOptional, IsString, MinLength, ValidateIf, ValidateNested } from "class-validator";
+import { IsBoolean, IsEnum, IsOptional, IsString, MinLength, ValidateIf, ValidateNested } from "class-validator";
 import { DeviceProtocol } from "@prisma/client";
 import { HttpDeviceConfigDto } from "./http-device-config.dto";
 import { DeviceGroupDto } from "./device-group.dto";
@@ -44,4 +44,9 @@ export class CreateDeviceDto {
   @ValidateNested()
   @Type(() => DeviceGroupDto)
   group?: DeviceGroupDto;
+
+  /** Si es true, el dispositivo no se muestra en el panel principal (se puede volver a mostrar despues). */
+  @IsOptional()
+  @IsBoolean()
+  hidden?: boolean;
 }

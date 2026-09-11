@@ -38,7 +38,7 @@ export interface Device {
   httpBaseUrl: string | null;
   payloadOn: string;
   payloadOff: string;
-  metadata: { http?: HttpDeviceConfig; group?: DeviceGroup } | null;
+  metadata: { http?: HttpDeviceConfig; group?: DeviceGroup; hidden?: boolean } | null;
   state: DeviceState | null;
 }
 
@@ -52,9 +52,24 @@ export interface CreateDevicePayload {
   httpBaseUrl?: string;
   httpConfig?: HttpDeviceConfig;
   group?: DeviceGroup;
+  hidden?: boolean;
 }
 
 export type UpdateDevicePayload = Partial<CreateDevicePayload>;
+
+/** Oculta o vuelve a mostrar un dispositivo en el panel principal sin eliminarlo. */
+export function useSetDeviceHidden() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, hidden }: { id: string; hidden: boolean }) => {
+      const { data } = await apiClient.patch<Device>(`/devices/${id}`, { hidden });
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["devices"] });
+    },
+  });
+}
 
 export function useDevices() {
   return useQuery({
