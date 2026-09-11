@@ -5,6 +5,7 @@ import { useDeviceSocket } from "../ws/useDeviceSocket";
 import { useAuthStore } from "../store/auth.store";
 import AddDeviceForm from "./AddDeviceForm";
 import ImportHomeAssistant from "./ImportHomeAssistant";
+import ImportMqtt from "./ImportMqtt";
 import ToggleSwitch from "../components/ToggleSwitch";
 import {
   ChipLogo,
@@ -109,6 +110,7 @@ export default function Devices() {
   const clear = useAuthStore((s) => s.clear);
   const [showForm, setShowForm] = useState(false);
   const [showImport, setShowImport] = useState(false);
+  const [showImportMqtt, setShowImportMqtt] = useState(false);
   const [editingDevice, setEditingDevice] = useState<Device | null>(null);
   const [search, setSearch] = useState("");
   const [showHiddenPanel, setShowHiddenPanel] = useState(false);
@@ -161,6 +163,7 @@ export default function Devices() {
   function handleEdit(device: Device) {
     setShowForm(false);
     setShowImport(false);
+    setShowImportMqtt(false);
     setEditingDevice(device);
   }
 
@@ -213,10 +216,11 @@ export default function Devices() {
               {totalVisible} visible(s){hidden.length > 0 ? ` · ${hidden.length} oculto(s)` : ""}
             </p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <button
               onClick={() => {
                 setShowImport(false);
+                setShowImportMqtt(false);
                 setEditingDevice(null);
                 setShowForm((v) => !v);
               }}
@@ -228,13 +232,26 @@ export default function Devices() {
             <button
               onClick={() => {
                 setShowForm(false);
+                setShowImportMqtt(false);
                 setEditingDevice(null);
                 setShowImport((v) => !v);
               }}
               className="flex items-center gap-1.5 rounded-md border border-slate-700 bg-slate-900 px-3 py-1.5 text-sm text-slate-200 hover:bg-slate-800"
             >
               <ImportIcon className="h-3.5 w-3.5" />
-              Importar de Home Assistant
+              Con Home Assistant
+            </button>
+            <button
+              onClick={() => {
+                setShowForm(false);
+                setShowImport(false);
+                setEditingDevice(null);
+                setShowImportMqtt((v) => !v);
+              }}
+              className="flex items-center gap-1.5 rounded-md border border-slate-700 bg-slate-900 px-3 py-1.5 text-sm text-slate-200 hover:bg-slate-800"
+            >
+              <ImportIcon className="h-3.5 w-3.5" />
+              Sin Home Assistant (MQTT directo)
             </button>
           </div>
         </div>
@@ -277,6 +294,7 @@ export default function Devices() {
         )}
 
         {showImport && <ImportHomeAssistant onDone={() => setShowImport(false)} />}
+        {showImportMqtt && <ImportMqtt onDone={() => setShowImportMqtt(false)} />}
 
         {formOpen && (
           <AddDeviceForm

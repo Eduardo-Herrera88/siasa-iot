@@ -6,6 +6,19 @@ import { PrismaService } from "../../prisma/prisma.service";
 import { DeviceStateBus } from "../../state-bus/device-state-bus.service";
 import type { DeviceAdapter } from "../adapter.interface";
 import { AdapterRegistry } from "../adapter-registry.service";
+import type { MqttJsonConfigDto } from "../../devices/dto/mqtt-json-config.dto";
+
+interface MqttJsonMetadata {
+  mqttJson?: MqttJsonConfigDto;
+}
+
+function getByPath(value: unknown, path: string): unknown {
+  const segments = path.split(/[.[\]]+/).filter(Boolean);
+  return segments.reduce<unknown>((acc, key) => {
+    if (acc === null || acc === undefined) return undefined;
+    return (acc as Record<string, unknown>)[key];
+  }, value);
+}
 
 @Injectable()
 export class MqttAdapterService implements DeviceAdapter, OnModuleInit, OnModuleDestroy {
@@ -79,9 +92,21 @@ export class MqttAdapterService implements DeviceAdapter, OnModuleInit, OnModule
     const device = await this.prisma.device.findUnique({ where: { id: deviceId } });
     if (!device) return;
 
-    let state = raw;
-    if (raw === device.payloadOn) state = "on";
-    else if (raw === device.payloadOff) state = "off";
+    const mqttJson = (device.metadata as MqttJsonMetadata | null)?.mqttJson;
+    let extracted = raw;
+    if (mqttJson?.statePath) {
+      try {
+        const parsed = JSON.parse(raw);
+        const value = getByPath(parsed, mqttJson.statePath);
+        extracted = value === undefined || value === null ? raw : String(value);
+      } catch {
+        // payload no era JSON valido, se usa el texto plano tal cual
+      }
+    }
+
+    let state = extracted;
+    if (extracted === device.payloadOn) state = "on";
+    else if (extracted === device.payloadOff) state = "off";
 
     this.stateBus.emit({ deviceId, state, rawPayload: raw });
   }
@@ -91,7 +116,13 @@ export class MqttAdapterService implements DeviceAdapter, OnModuleInit, OnModule
       throw new Error(`Dispositivo "${device.name}" no tiene commandTopic configurado`);
     }
 
-    const payload = action === CommandAction.on ? device.payloadOn : device.payloadOff;
+    const mqttJson = (device.metadata as MqttJsonMetadata | null)?.mqttJson;
+    const jsonPayload = action === CommandAction.on ? mqttJson?.onPayload : mqttJson?.offPayload;
+    const payload = jsonPayload !== undefined
+      ? JSON.stringify(jsonPayload)
+      : action === CommandAction.on
+        ? device.payloadOn
+        : device.payloadOff;
 
     await new Promise<void>((resolve, reject) => {
       this.client!.publish(device.commandTopic!, payload, { qos: 1 }, (err) => {

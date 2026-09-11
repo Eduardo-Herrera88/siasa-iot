@@ -7,10 +7,12 @@ import { CurrentUser } from "../auth/decorators/current-user.decorator";
 import type { AuthenticatedUser } from "../auth/auth.types";
 import { DevicesService } from "./devices.service";
 import { HomeAssistantImportService } from "./home-assistant-import.service";
+import { Zigbee2MqttImportService } from "./zigbee2mqtt-import.service";
 import { CreateDeviceDto } from "./dto/create-device.dto";
 import { UpdateDeviceDto } from "./dto/update-device.dto";
 import { DeviceCommandDto } from "./dto/device-command.dto";
 import { DiscoverHomeAssistantDto, ImportHomeAssistantDto } from "./dto/home-assistant-import.dto";
+import { DiscoverZigbee2MqttDto, ImportZigbee2MqttDto } from "./dto/zigbee2mqtt-import.dto";
 
 @Controller("devices")
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -18,6 +20,7 @@ export class DevicesController {
   constructor(
     private readonly devicesService: DevicesService,
     private readonly haImportService: HomeAssistantImportService,
+    private readonly zigbee2mqttImportService: Zigbee2MqttImportService,
   ) {}
 
   @Version("1")
@@ -51,6 +54,20 @@ export class DevicesController {
   @Post("home-assistant/import")
   importHomeAssistant(@Body() dto: ImportHomeAssistantDto) {
     return this.haImportService.import(dto);
+  }
+
+  @Version("1")
+  @Roles(Role.admin)
+  @Post("zigbee2mqtt/discover")
+  discoverZigbee2Mqtt(@Body() dto: DiscoverZigbee2MqttDto) {
+    return this.zigbee2mqttImportService.discover(dto);
+  }
+
+  @Version("1")
+  @Roles(Role.admin)
+  @Post("zigbee2mqtt/import")
+  importZigbee2Mqtt(@Body() dto: ImportZigbee2MqttDto) {
+    return this.zigbee2mqttImportService.import(dto);
   }
 
   @Version("1")

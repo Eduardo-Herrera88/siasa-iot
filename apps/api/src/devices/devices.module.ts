@@ -3,6 +3,7 @@ import { BullModule } from "@nestjs/bullmq";
 import { DevicesController } from "./devices.controller";
 import { DevicesService } from "./devices.service";
 import { HomeAssistantImportService } from "./home-assistant-import.service";
+import { Zigbee2MqttImportService } from "./zigbee2mqtt-import.service";
 import { CommandsProcessor } from "./commands.processor";
 import { COMMANDS_QUEUE } from "./devices.constants";
 import { AdaptersModule } from "../adapters/adapters.module";
@@ -17,7 +18,7 @@ import { EventsModule } from "../events/events.module";
     EventsModule,
   ],
   controllers: [DevicesController],
-  providers: [DevicesService, CommandsProcessor, HomeAssistantImportService],
+  providers: [DevicesService, CommandsProcessor, HomeAssistantImportService, Zigbee2MqttImportService],
   exports: [DevicesService],
 })
 export class DevicesModule {}

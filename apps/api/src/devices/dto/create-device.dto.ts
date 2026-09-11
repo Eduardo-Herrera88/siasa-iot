@@ -4,6 +4,7 @@ import { DeviceProtocol } from "@prisma/client";
 import { HttpDeviceConfigDto } from "./http-device-config.dto";
 import { DeviceGroupDto } from "./device-group.dto";
 import { EwelinkDeviceConfigDto } from "./ewelink-device-config.dto";
+import { MqttJsonConfigDto } from "./mqtt-json-config.dto";
 
 export class CreateDeviceDto {
   @IsString()
@@ -56,4 +57,10 @@ export class CreateDeviceDto {
   @ValidateNested()
   @Type(() => EwelinkDeviceConfigDto)
   ewelinkConfig?: EwelinkDeviceConfigDto;
+
+  /** Opcional cuando protocol = mqtt: soporte para payloads JSON (ej. Zigbee2MQTT) en vez de texto plano. */
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => MqttJsonConfigDto)
+  mqttJson?: MqttJsonConfigDto;
 }

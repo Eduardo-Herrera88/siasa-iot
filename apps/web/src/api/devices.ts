@@ -167,6 +167,45 @@ export function useImportHomeAssistant() {
   });
 }
 
+export interface ZigbeeEntity {
+  friendlyName: string;
+  name: string;
+  model?: string;
+  ieeeAddress?: string;
+}
+
+export interface MqttBrokerParams {
+  brokerUrl?: string;
+  username?: string;
+  password?: string;
+  baseTopic?: string;
+}
+
+export function useDiscoverZigbee2Mqtt() {
+  return useMutation({
+    mutationFn: async (params: MqttBrokerParams) => {
+      const { data } = await apiClient.post<ZigbeeEntity[]>("/devices/zigbee2mqtt/discover", params);
+      return data;
+    },
+  });
+}
+
+export function useImportZigbee2Mqtt() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (params: MqttBrokerParams & { entities: { friendlyName: string; name: string }[] }) => {
+      const { data } = await apiClient.post<{ created: Device[]; failed: { friendlyName: string; error: string }[] }>(
+        "/devices/zigbee2mqtt/import",
+        params,
+      );
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["devices"] });
+    },
+  });
+}
+
 /**
  * Aplica el nuevo estado al toggle de inmediato (optimista) en vez de esperar la respuesta
  * del backend: el comando real se despacha async via BullMQ y el estado confirmado llega
