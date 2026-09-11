@@ -19,6 +19,7 @@ import {
   TrashIcon,
 } from "../components/icons";
 import { ToastContainer, useToasts } from "../components/Toast";
+import GlobalActivityIndicator from "../components/GlobalActivityIndicator";
 
 function ActionButton({
   onClick,
@@ -204,6 +205,7 @@ export default function Devices() {
               <LogoutIcon className="h-3.5 w-3.5" />
               Salir
             </button>
+            <GlobalActivityIndicator />
           </div>
         </div>
       </header>

@@ -2,7 +2,6 @@ import { Navigate, Route, BrowserRouter, Routes } from "react-router-dom";
 import Login from "./routes/Login";
 import Devices from "./routes/Devices";
 import { useAuthStore } from "./store/auth.store";
-import GlobalActivityIndicator from "./components/GlobalActivityIndicator";
 
 function RequireAuth({ children }: { children: JSX.Element }) {
   const accessToken = useAuthStore((s) => s.accessToken);
@@ -25,7 +24,6 @@ export default function App() {
         />
         <Route path="*" element={<Navigate to="/devices" replace />} />
       </Routes>
-      <GlobalActivityIndicator />
     </BrowserRouter>
   );
 }
