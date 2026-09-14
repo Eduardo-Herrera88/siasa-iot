@@ -102,6 +102,113 @@ export function SearchIcon({ className = base }: IconProps) {
   );
 }
 
+export function BuildingIcon({ className = base }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className}>
+      <rect x="5" y="3" width="14" height="18" rx="1" stroke="currentColor" strokeWidth="1.6" />
+      <path d="M5 9h14M5 15h14" stroke="currentColor" strokeWidth="1.6" />
+      <rect x="7.3" y="5.3" width="2" height="2" fill="currentColor" />
+      <rect x="14.7" y="5.3" width="2" height="2" fill="currentColor" />
+      <rect x="7.3" y="11.3" width="2" height="2" fill="currentColor" />
+      <rect x="14.7" y="11.3" width="2" height="2" fill="currentColor" />
+      <rect x="10.5" y="17.3" width="3" height="3.7" fill="currentColor" />
+    </svg>
+  );
+}
+
+export function BulbIcon({ className = base }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className}>
+      <path
+        d="M9 18h6M10 21h4M8 14a4 4 0 1 1 8 0c0 1.6-.8 2.4-1.5 3.2-.5.5-.8 1-.8 1.8h-3.4c0-.8-.3-1.3-.8-1.8C8.8 16.4 8 15.6 8 14Z"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinejoin="round"
+      />
+      <path d="M12 2v1.5M4.2 5.2l1 1M19.8 5.2l-1 1" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+export function ClimateIcon({ className = base }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className}>
+      <path d="M12 2v20M4.5 6l15 12M19.5 6l-15 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      <path
+        d="M12 5 10 3m2 2 2-2M12 19l-2 2m2-2 2 2M6.6 8.4 4 7.8m2.6.6-.6-2.6M17.4 8.4 20 7.8m-2.6.6.6-2.6M6.6 15.6 4 16.2m2.6-.6-.6 2.6M17.4 15.6 20 16.2m-2.6-.6.6 2.6"
+        stroke="currentColor"
+        strokeWidth="1.3"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+export function WaterDropIcon({ className = base }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className}>
+      <path
+        d="M12 3s6 6.5 6 11a6 6 0 1 1-12 0c0-4.5 6-11 6-11Z"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+export function LockIcon({ className = base }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className}>
+      <rect x="5" y="11" width="14" height="9" rx="1.5" stroke="currentColor" strokeWidth="1.6" />
+      <path d="M8 11V7a4 4 0 1 1 8 0v4" stroke="currentColor" strokeWidth="1.6" />
+      <circle cx="12" cy="15.5" r="1.4" fill="currentColor" />
+    </svg>
+  );
+}
+
+export function CameraIcon({ className = base }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className}>
+      <path
+        d="M4 8a2 2 0 0 1 2-2h1.5l1-1.5h7l1 1.5H18a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8Z"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinejoin="round"
+      />
+      <circle cx="12" cy="13" r="3.2" stroke="currentColor" strokeWidth="1.6" />
+    </svg>
+  );
+}
+
+export function FanIcon({ className = base }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className}>
+      <circle cx="12" cy="12" r="1.6" fill="currentColor" />
+      <path
+        d="M12 12c0-3 1.5-6 4-6s3 2 1.5 4-4 2-5.5 2ZM12 12c-3 0-6-1.5-6-4s2-3 4-1.5 2 4 2 5.5ZM12 12c0 3-1.5 6-4 6s-3-2-1.5-4 4-2 5.5-2ZM12 12c3 0 6 1.5 6 4s-2 3-4 1.5-2-4-2-5.5Z"
+        stroke="currentColor"
+        strokeWidth="1.4"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+export function PlugIcon({ className = base }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className}>
+      <path
+        d="M9 3v5M15 3v5M7 8h10v3a5 5 0 0 1-5 5 5 5 0 0 1-5-5V8ZM12 16v5"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 export function ChipLogo({ className = "h-8 w-8" }: IconProps) {
   return (
     <svg viewBox="0 0 24 24" fill="none" className={className}>

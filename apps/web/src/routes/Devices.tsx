@@ -3,11 +3,15 @@ import { useNavigate } from "react-router-dom";
 import { useDeleteDevice, useDevices, useSendDeviceCommand, useSetDeviceHidden, type Device } from "../api/devices";
 import { useDeviceSocket } from "../ws/useDeviceSocket";
 import { useAuthStore } from "../store/auth.store";
+import { APP_NAME, BUILDING_CONTEXT } from "../config/brand";
+import { inferDeviceKind, type DeviceKindMeta } from "../utils/deviceKind";
 import AddDeviceForm from "./AddDeviceForm";
 import ImportHomeAssistant from "./ImportHomeAssistant";
 import ImportMqtt from "./ImportMqtt";
 import ToggleSwitch from "../components/ToggleSwitch";
+import LiveClock from "../components/LiveClock";
 import {
+  BuildingIcon,
   ChipLogo,
   EditIcon,
   EyeIcon,
@@ -49,6 +53,45 @@ function ActionButton({
   );
 }
 
+function DeviceIconBadge({ kind, isOn, size = "md" }: { kind: DeviceKindMeta; isOn: boolean; size?: "md" | "sm" }) {
+  const Icon = kind.Icon;
+  const box = size === "md" ? "h-11 w-11 rounded-xl" : "h-8 w-8 rounded-lg";
+  const iconSize = size === "md" ? "h-5 w-5" : "h-4 w-4";
+  return (
+    <div
+      className={`flex shrink-0 items-center justify-center transition-all ${box} ${
+        isOn ? `${kind.accent.bgOn} ${kind.accent.text} shadow-lg ${kind.accent.glow}` : "bg-slate-800 text-slate-500"
+      }`}
+    >
+      <Icon className={iconSize} />
+    </div>
+  );
+}
+
+function StatusDot({ isOn }: { isOn: boolean }) {
+  return (
+    <span
+      className={`h-1.5 w-1.5 shrink-0 rounded-full transition-colors ${
+        isOn ? "bg-emerald-400 shadow-[0_0_6px_theme(colors.emerald.400)]" : "bg-slate-700"
+      }`}
+    />
+  );
+}
+
+function StatTile({ label, value, tone }: { label: string; value: number; tone: "sky" | "emerald" | "slate" }) {
+  const toneClass = {
+    sky: "text-sky-300",
+    emerald: "text-emerald-300",
+    slate: "text-slate-200",
+  }[tone];
+  return (
+    <div className="rounded-xl border border-slate-800 bg-slate-900/70 px-4 py-3">
+      <div className={`text-2xl font-semibold tabular-nums ${toneClass}`}>{value}</div>
+      <div className="text-xs text-slate-500">{label}</div>
+    </div>
+  );
+}
+
 function DeviceRow({
   device,
   onToggle,
@@ -63,14 +106,11 @@ function DeviceRow({
   onHide: (device: Device) => void;
 }) {
   const isOn = device.state?.state === "on";
+  const kind = inferDeviceKind(device.name);
   return (
     <div className="group flex items-center justify-between gap-3 border-b border-slate-800/70 py-2.5 last:border-b-0">
       <div className="flex min-w-0 items-center gap-2.5">
-        <span
-          className={`h-2 w-2 shrink-0 rounded-full transition-colors ${
-            isOn ? "bg-emerald-400 shadow-[0_0_6px_theme(colors.emerald.400)]" : "bg-slate-700"
-          }`}
-        />
+        <DeviceIconBadge kind={kind} isOn={isOn} size="sm" />
         <span className="truncate text-sm text-slate-200">{device.name}</span>
       </div>
       <div className="flex shrink-0 items-center gap-2">
@@ -93,7 +133,7 @@ function DeviceRow({
 
 function CardSkeleton() {
   return (
-    <div className="animate-pulse rounded-xl border border-slate-800 bg-slate-900 p-5">
+    <div className="animate-pulse rounded-2xl border border-slate-800 bg-slate-900 p-5">
       <div className="mb-4 h-4 w-1/3 rounded bg-slate-800" />
       <div className="mb-2.5 h-4 rounded bg-slate-800/70" />
       <div className="h-4 w-2/3 rounded bg-slate-800/70" />
@@ -119,17 +159,22 @@ export default function Devices() {
 
   useDeviceSocket();
 
-  const { groups, singles, hidden } = useMemo(() => {
+  const { groups, singles, hidden, stats } = useMemo(() => {
     const query = search.trim().toLowerCase();
     const groups = new Map<string, Device[]>();
     const singles: Device[] = [];
     const hidden: Device[] = [];
+    let on = 0;
+    let off = 0;
 
     for (const device of devices ?? []) {
       if (device.metadata?.hidden) {
         hidden.push(device);
         continue;
       }
+      if (device.state?.state === "on") on += 1;
+      else if (device.state?.state === "off") off += 1;
+
       if (query && !device.name.toLowerCase().includes(query)) continue;
 
       const key = device.metadata?.group?.key;
@@ -140,7 +185,7 @@ export default function Devices() {
         singles.push(device);
       }
     }
-    return { groups, singles, hidden };
+    return { groups, singles, hidden, stats: { total: on + off, on, off } };
   }, [devices, search]);
 
   function handleLogout() {
@@ -187,15 +232,29 @@ export default function Devices() {
   return (
     <div className="min-h-screen bg-slate-950">
       <header className="sticky top-0 z-10 border-b border-slate-800 bg-slate-950/80 backdrop-blur">
-        <div className="mx-auto flex max-w-4xl items-center justify-between px-6 py-3">
-          <div className="flex items-center gap-2.5">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-sky-400 to-blue-600 text-white">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-6 py-3">
+          <div className="flex min-w-0 items-center gap-2.5">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-sky-400 to-blue-600 text-white">
               <ChipLogo className="h-5 w-5" />
             </div>
-            <span className="font-semibold text-slate-100">SIASA IoT</span>
+            <div className="min-w-0 leading-tight">
+              <span className="block truncate font-semibold text-slate-100">{APP_NAME}</span>
+              <span className="block text-[10px] uppercase tracking-wide text-slate-500">by SIASA</span>
+            </div>
           </div>
-          <div className="flex items-center gap-3">
-            <span className="text-sm text-slate-400">
+
+          <div className="hidden items-center gap-2 rounded-full border border-slate-800 bg-slate-900/70 px-3 py-1.5 text-sm text-slate-300 md:flex">
+            <BuildingIcon className="h-4 w-4 text-sky-400" />
+            <span className="font-medium text-slate-100">{BUILDING_CONTEXT.building}</span>
+            <span className="text-slate-600">&middot;</span>
+            <span>{BUILDING_CONTEXT.level}</span>
+          </div>
+
+          <div className="flex shrink-0 items-center gap-3">
+            <div className="hidden sm:block">
+              <LiveClock />
+            </div>
+            <span className="hidden text-sm text-slate-400 lg:inline">
               {user?.username} &middot; <span className="text-slate-500">{user?.role}</span>
             </span>
             <button
@@ -210,10 +269,14 @@ export default function Devices() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-4xl p-6">
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+      <main className="mx-auto max-w-6xl p-6">
+        <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h1 className="text-xl font-semibold text-slate-50">Dispositivos</h1>
+            <p className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-sky-400">
+              <BuildingIcon className="h-3.5 w-3.5" />
+              Edificio {BUILDING_CONTEXT.building} &middot; {BUILDING_CONTEXT.level}
+            </p>
+            <h1 className="text-xl font-semibold text-slate-50">Panel de dispositivos</h1>
             <p className="text-sm text-slate-500">
               {totalVisible} visible(s){hidden.length > 0 ? ` · ${hidden.length} oculto(s)` : ""}
             </p>
@@ -257,6 +320,14 @@ export default function Devices() {
             </button>
           </div>
         </div>
+
+        {!isLoading && !isError && stats.total > 0 && (
+          <div className="mb-6 grid grid-cols-3 gap-3 sm:max-w-md">
+            <StatTile label="Dispositivos" value={stats.total} tone="slate" />
+            <StatTile label="Encendidos" value={stats.on} tone="emerald" />
+            <StatTile label="Apagados" value={stats.off} tone="sky" />
+          </div>
+        )}
 
         <div className="mb-6 flex flex-wrap items-center gap-3">
           <div className="relative max-w-xs flex-1">
@@ -327,9 +398,10 @@ export default function Devices() {
           </div>
         )}
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {isLoading && (
             <>
+              <CardSkeleton />
               <CardSkeleton />
               <CardSkeleton />
             </>
@@ -337,14 +409,22 @@ export default function Devices() {
 
           {[...groups.entries()].map(([key, members]) => {
             const title = members[0].metadata?.group?.label || members[0].name;
+            const groupKind = inferDeviceKind(title);
+            const groupOn = members.some((m) => m.state?.state === "on");
             return (
               <div
                 key={key}
-                className="rounded-xl border border-slate-800 bg-slate-900 p-5 shadow-sm transition-colors hover:border-slate-700"
+                className="rounded-2xl border border-slate-800 bg-slate-900/80 p-5 shadow-sm transition-colors hover:border-slate-700"
               >
-                <div className="mb-3 flex items-center justify-between">
-                  <h2 className="font-medium text-slate-100">{title}</h2>
-                  <span className="text-xs text-slate-500">{members[0].protocol.toUpperCase()}</span>
+                <div className="mb-3 flex items-center gap-3">
+                  <DeviceIconBadge kind={groupKind} isOn={groupOn} />
+                  <div className="min-w-0 flex-1">
+                    <h2 className="truncate font-medium text-slate-100">{title}</h2>
+                    <p className={`text-xs font-medium uppercase tracking-wide ${groupKind.accent.text}`}>
+                      {groupKind.label} &middot; {members.length} canales
+                    </p>
+                  </div>
+                  <span className="shrink-0 text-xs text-slate-500">{members[0].protocol.toUpperCase()}</span>
                 </div>
                 <div>
                   {members.map((device) => (
@@ -362,21 +442,55 @@ export default function Devices() {
             );
           })}
 
-          {singles.map((device) => (
-            <div
-              key={device.id}
-              className="rounded-xl border border-slate-800 bg-slate-900 p-5 shadow-sm transition-colors hover:border-slate-700"
-            >
-              <div className="mb-3 flex items-center justify-between">
-                <h2 className="font-medium text-slate-100">{device.name}</h2>
-                <span className="text-xs text-slate-500">
-                  {device.protocol.toUpperCase()} &middot;{" "}
-                  {device.state?.updatedAt ? new Date(device.state.updatedAt).toLocaleTimeString() : "sin datos"}
-                </span>
+          {singles.map((device) => {
+            const isOn = device.state?.state === "on";
+            const kind = inferDeviceKind(device.name);
+            return (
+              <div
+                key={device.id}
+                className="group relative rounded-2xl border border-slate-800 bg-slate-900/80 p-5 shadow-sm transition-all hover:border-slate-700 hover:shadow-lg"
+              >
+                <div className="mb-4 flex items-start justify-between gap-3">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <DeviceIconBadge kind={kind} isOn={isOn} />
+                    <div className="min-w-0">
+                      <h2 className="truncate font-medium text-slate-100">{device.name}</h2>
+                      <p className={`text-xs font-medium uppercase tracking-wide ${kind.accent.text}`}>
+                        {kind.label}
+                      </p>
+                    </div>
+                  </div>
+                  <ToggleSwitch checked={isOn} onChange={(next) => handleToggle(device, next)} />
+                </div>
+
+                <div className="flex items-center justify-between border-t border-slate-800/70 pt-3 text-xs text-slate-500">
+                  <span className="flex items-center gap-1.5">
+                    <StatusDot isOn={isOn} />
+                    {isOn ? "Encendido" : "Apagado"}
+                  </span>
+                  <span className="flex items-center gap-2">
+                    <span className="hidden group-hover:inline-flex">
+                      <span className="flex items-center gap-1">
+                        <ActionButton onClick={() => handleEdit(device)} title="Editar" tone="blue">
+                          <EditIcon className="h-4 w-4" />
+                        </ActionButton>
+                        <ActionButton onClick={() => handleHide(device)} title="Ocultar del panel" tone="slate">
+                          <EyeOffIcon className="h-4 w-4" />
+                        </ActionButton>
+                        <ActionButton onClick={() => handleDelete(device)} title="Eliminar" tone="red">
+                          <TrashIcon className="h-4 w-4" />
+                        </ActionButton>
+                      </span>
+                    </span>
+                    <span className="group-hover:hidden">
+                      {device.protocol.toUpperCase()} &middot;{" "}
+                      {device.state?.updatedAt ? new Date(device.state.updatedAt).toLocaleTimeString() : "sin datos"}
+                    </span>
+                  </span>
+                </div>
               </div>
-              <DeviceRow device={device} onToggle={handleToggle} onEdit={handleEdit} onDelete={handleDelete} onHide={handleHide} />
-            </div>
-          ))}
+            );
+          })}
         </div>
       </main>
 
