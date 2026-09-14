@@ -120,6 +120,20 @@
           }
         },
         {
+          "name": "Listar dispositivos sin Home Assistant (MQTT/eWeLink nativo)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/devices?protocol=mqtt,ewelink",
+              "host": ["{{baseUrl}}"],
+              "path": ["devices"],
+              "query": [{ "key": "protocol", "value": "mqtt,ewelink" }]
+            },
+            "description": "protocol=http en este fleet siempre pasa por el bridge REST de Home Assistant - este filtro devuelve solo los dispositivos con conexion directa (MQTT/Zigbee2MQTT nativo o eWeLink LAN nativo), sin pasar por HA. Tambien acepta un solo valor, ej. ?protocol=mqtt."
+          }
+        },
+        {
           "name": "Ver un dispositivo",
           "request": {
             "method": "GET",

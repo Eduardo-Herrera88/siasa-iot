@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards, Version } from "@nestjs/common";
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards, Version } from "@nestjs/common";
 import { Role } from "@prisma/client";
 import { AuthGuard } from "../auth/guards/auth.guard";
 import { RolesGuard } from "../auth/guards/roles.guard";
@@ -11,6 +11,7 @@ import { Zigbee2MqttImportService } from "./zigbee2mqtt-import.service";
 import { CreateDeviceDto } from "./dto/create-device.dto";
 import { UpdateDeviceDto } from "./dto/update-device.dto";
 import { DeviceCommandDto } from "./dto/device-command.dto";
+import { ListDevicesQueryDto } from "./dto/list-devices-query.dto";
 import { DiscoverHomeAssistantDto, ImportHomeAssistantDto } from "./dto/home-assistant-import.dto";
 import { DiscoverZigbee2MqttDto, ImportZigbee2MqttDto } from "./dto/zigbee2mqtt-import.dto";
 
@@ -25,8 +26,8 @@ export class DevicesController {
 
   @Version("1")
   @Get()
-  findAll() {
-    return this.devicesService.findAll();
+  findAll(@Query() query: ListDevicesQueryDto) {
+    return this.devicesService.findAll(query.protocol);
   }
 
   @Version("1")

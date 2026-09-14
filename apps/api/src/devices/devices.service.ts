@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { InjectQueue } from "@nestjs/bullmq";
 import { Queue } from "bullmq";
-import { CommandAction, CommandStatus } from "@prisma/client";
+import { CommandAction, CommandStatus, DeviceProtocol } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { AdapterRegistry } from "../adapters/adapter-registry.service";
 import { EventLogService } from "../events/event-log.service";
@@ -19,8 +19,9 @@ export class DevicesService {
     @InjectQueue(COMMANDS_QUEUE) private readonly commandsQueue: Queue,
   ) {}
 
-  async findAll() {
+  async findAll(protocols?: DeviceProtocol[]) {
     const devices = await this.prisma.device.findMany({
+      where: protocols?.length ? { protocol: { in: protocols } } : undefined,
       include: { state: true },
       orderBy: { name: "asc" },
     });
