@@ -8,6 +8,7 @@ import { Logger as PinoLogger } from "nestjs-pino";
 import fastifyCors from "@fastify/cors";
 import { AppModule } from "./app.module";
 import { AllExceptionsFilter } from "./common/filters/all-exceptions.filter";
+import { startExternalGateway } from "./external-gateway";
 
 async function bootstrap() {
   const app = await NestFactory.create<NestFastifyApplication>(
@@ -41,6 +42,11 @@ async function bootstrap() {
   const port = config.get<number>("API_PORT", 3000);
   await app.listen(port, "0.0.0.0");
   Logger.log(`API lista en http://localhost:${port}/api/v1`, "Bootstrap");
+
+  const externalPort = config.get<number>("EXTERNAL_API_PORT");
+  if (externalPort) {
+    startExternalGateway(externalPort, port);
+  }
 }
 
 bootstrap();

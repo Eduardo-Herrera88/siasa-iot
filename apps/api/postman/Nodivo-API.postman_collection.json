@@ -1,0 +1,434 @@
+{
+  "info": {
+    "_postman_id": "b6f6e6b0-6e2e-4a1a-9d2d-7c1a2f3b9a10",
+    "name": "Nodivo API (SIASA IoT)",
+    "description": "API central de automatizacion (Nodivo / SIASA IoT Platform).\n\n**Como usarla:**\n1. Corre la carpeta \"Auth\" > \"Login\" primero. Guarda `accessToken`/`refreshToken` automaticamente en las variables de la coleccion.\n2. Todo lo demas usa `Authorization: Bearer {{accessToken}}` por herencia de la coleccion.\n3. Si preferis consumir con una API key (integraciones externas, sin login de usuario), mira la carpeta \"Alternativa: API Key\" - primero crea una key con un JWT de admin (carpeta API Keys), y despues manda `x-api-key: {{apiKey}}` en vez de Authorization.\n4. `baseUrl` (puerto 3000) es la API completa, uso interno. `externalBaseUrl` (puerto 8081 por defecto, configurable con EXTERNAL_API_PORT en apps/api/.env) es un puerto separado pensado para integraciones externas: SOLO acepta x-api-key y bloquea /auth /users /api-keys por completo (ni con JWT ni con una key admin se puede tocar login o gestion de cuentas desde ahi). Para que sea alcanzable desde fuera de esta maquina hace falta abrir/reenviar ese puerto en el firewall o router - eso es configuracion de red, no algo que la API resuelva sola.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }]
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000/api/v1", "type": "string" },
+    { "key": "externalBaseUrl", "value": "http://localhost:8081/api/v1", "type": "string" },
+    { "key": "accessToken", "value": "", "type": "string" },
+    { "key": "refreshToken", "value": "", "type": "string" },
+    { "key": "apiKey", "value": "", "type": "string" },
+    { "key": "apiKeyId", "value": "", "type": "string" },
+    { "key": "deviceId", "value": "", "type": "string" },
+    { "key": "automationId", "value": "", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const data = pm.response.json();",
+                  "if (data.accessToken) pm.collectionVariables.set('accessToken', data.accessToken);",
+                  "if (data.refreshToken) pm.collectionVariables.set('refreshToken', data.refreshToken);",
+                  "pm.test('login ok, tokens guardados', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "  pm.expect(data.accessToken).to.be.a('string');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"admin123\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth", "login"] }
+          }
+        },
+        {
+          "name": "Refresh token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const data = pm.response.json();",
+                  "if (data.accessToken) pm.collectionVariables.set('accessToken', data.accessToken);",
+                  "if (data.refreshToken) pm.collectionVariables.set('refreshToken', data.refreshToken);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}" },
+            "url": { "raw": "{{baseUrl}}/auth/refresh", "host": ["{{baseUrl}}"], "path": ["auth", "refresh"] }
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}" },
+            "url": { "raw": "{{baseUrl}}/auth/logout", "host": ["{{baseUrl}}"], "path": ["auth", "logout"] }
+          }
+        },
+        {
+          "name": "Quien soy (me)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/auth/me", "host": ["{{baseUrl}}"], "path": ["auth", "me"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Dispositivos",
+      "item": [
+        {
+          "name": "Listar dispositivos",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const data = pm.response.json();",
+                  "if (Array.isArray(data) && data.length > 0) pm.collectionVariables.set('deviceId', data[0].id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/devices", "host": ["{{baseUrl}}"], "path": ["devices"] }
+          }
+        },
+        {
+          "name": "Ver un dispositivo",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/devices/{{deviceId}}", "host": ["{{baseUrl}}"], "path": ["devices", "{{deviceId}}"] }
+          }
+        },
+        {
+          "name": "Enviar comando (on/off)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"action\": \"on\"\n}" },
+            "url": {
+              "raw": "{{baseUrl}}/devices/{{deviceId}}/command",
+              "host": ["{{baseUrl}}"],
+              "path": ["devices", "{{deviceId}}", "command"]
+            },
+            "description": "action puede ser \"on\" u \"off\". Requiere rol admin u operator."
+          }
+        },
+        {
+          "name": "Crear dispositivo (MQTT)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Lampara Pasillo\",\n  \"protocol\": \"mqtt\",\n  \"stateTopic\": \"home/pasillo/state\",\n  \"commandTopic\": \"home/pasillo/set\",\n  \"payloadOn\": \"ON\",\n  \"payloadOff\": \"OFF\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/devices", "host": ["{{baseUrl}}"], "path": ["devices"] },
+            "description": "Requiere rol admin. Para protocol=http o protocol=ewelink revisa CreateDeviceDto en apps/api/src/devices/dto - piden httpConfig o ewelinkConfig respectivamente."
+          }
+        },
+        {
+          "name": "Actualizar dispositivo",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"hidden\": false\n}" },
+            "url": { "raw": "{{baseUrl}}/devices/{{deviceId}}", "host": ["{{baseUrl}}"], "path": ["devices", "{{deviceId}}"] }
+          }
+        },
+        {
+          "name": "Eliminar dispositivo",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/devices/{{deviceId}}", "host": ["{{baseUrl}}"], "path": ["devices", "{{deviceId}}"] }
+          }
+        },
+        {
+          "name": "Home Assistant: descubrir entidades",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"baseUrl\": \"http://10.3.0.45:8123\",\n  \"token\": \"<long-lived access token de HA>\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/devices/home-assistant/discover",
+              "host": ["{{baseUrl}}"],
+              "path": ["devices", "home-assistant", "discover"]
+            }
+          }
+        },
+        {
+          "name": "Home Assistant: importar entidades",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"baseUrl\": \"http://10.3.0.45:8123\",\n  \"token\": \"<long-lived access token de HA>\",\n  \"entities\": [\n    { \"entityId\": \"switch.sonoff_100226c475_1\", \"name\": \"Tira LED Oficina\" }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/devices/home-assistant/import",
+              "host": ["{{baseUrl}}"],
+              "path": ["devices", "home-assistant", "import"]
+            }
+          }
+        },
+        {
+          "name": "Zigbee2MQTT: descubrir dispositivos",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"brokerUrl\": \"mqtt://10.3.0.25:1883\",\n  \"username\": \"siasa\",\n  \"password\": \"<password>\",\n  \"baseTopic\": \"zigbee2mqtt\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/devices/zigbee2mqtt/discover",
+              "host": ["{{baseUrl}}"],
+              "path": ["devices", "zigbee2mqtt", "discover"]
+            },
+            "description": "Todos los campos del body son opcionales: si se omiten, usa el MQTT_URL configurado en el servidor."
+          }
+        },
+        {
+          "name": "Zigbee2MQTT: importar dispositivos",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"entities\": [\n    { \"friendlyName\": \"Dimmer_Tira_Led_Oficina3\", \"name\": \"Dimmer Tira LED Oficina 3\" }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/devices/zigbee2mqtt/import",
+              "host": ["{{baseUrl}}"],
+              "path": ["devices", "zigbee2mqtt", "import"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Automatizaciones",
+      "item": [
+        {
+          "name": "Listar reglas",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const data = pm.response.json();",
+                  "if (Array.isArray(data) && data.length > 0) pm.collectionVariables.set('automationId', data[0].id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/automations", "host": ["{{baseUrl}}"], "path": ["automations"] }
+          }
+        },
+        {
+          "name": "Ver una regla",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/automations/{{automationId}}", "host": ["{{baseUrl}}"], "path": ["automations", "{{automationId}}"] }
+          }
+        },
+        {
+          "name": "Historial de ejecuciones de una regla",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/automations/{{automationId}}/executions",
+              "host": ["{{baseUrl}}"],
+              "path": ["automations", "{{automationId}}", "executions"]
+            }
+          }
+        },
+        {
+          "name": "Crear regla",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Puerta abierta enciende lampara\",\n  \"description\": \"Si el sensor de puerta pasa a on, enciende la lampara de la sala\",\n  \"enabled\": true,\n  \"triggers\": [\n    { \"deviceId\": \"<id del sensor de puerta>\", \"operator\": \"eq\", \"value\": \"on\" }\n  ],\n  \"conditions\": [],\n  \"actions\": [\n    { \"deviceId\": \"<id de la lampara>\", \"action\": \"on\", \"order\": 0, \"delayMs\": 0 }\n  ]\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/automations", "host": ["{{baseUrl}}"], "path": ["automations"] },
+            "description": "Requiere rol admin u operator. deviceId en triggers/conditions/actions debe ser un id real de /devices."
+          }
+        },
+        {
+          "name": "Actualizar regla",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"enabled\": false\n}" },
+            "url": { "raw": "{{baseUrl}}/automations/{{automationId}}", "host": ["{{baseUrl}}"], "path": ["automations", "{{automationId}}"] }
+          }
+        },
+        {
+          "name": "Eliminar regla",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/automations/{{automationId}}", "host": ["{{baseUrl}}"], "path": ["automations", "{{automationId}}"] },
+            "description": "Requiere rol admin."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Usuarios (admin)",
+      "item": [
+        {
+          "name": "Listar usuarios",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/users", "host": ["{{baseUrl}}"], "path": ["users"] }
+          }
+        },
+        {
+          "name": "Crear usuario",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"operador1\",\n  \"password\": \"cambia-esto-123\",\n  \"role\": \"operator\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/users", "host": ["{{baseUrl}}"], "path": ["users"] },
+            "description": "role: admin | operator | viewer"
+          }
+        },
+        {
+          "name": "Eliminar usuario",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/users/:id", "host": ["{{baseUrl}}"], "path": ["users", ":id"], "variable": [{ "key": "id", "value": "" }] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "API Keys (admin)",
+      "item": [
+        {
+          "name": "Listar API keys",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api-keys", "host": ["{{baseUrl}}"], "path": ["api-keys"] }
+          }
+        },
+        {
+          "name": "Crear API key",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const data = pm.response.json();",
+                  "if (data.key) pm.collectionVariables.set('apiKey', data.key);",
+                  "if (data.id) pm.collectionVariables.set('apiKeyId', data.id);",
+                  "pm.test('key generada y guardada en {{apiKey}}', function () {",
+                  "  pm.expect(data.key).to.be.a('string');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Integracion Postman\",\n  \"role\": \"operator\"\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/api-keys", "host": ["{{baseUrl}}"], "path": ["api-keys"] },
+            "description": "La respuesta trae el campo `key` en texto plano SOLO esta vez - se guarda automaticamente en la variable {{apiKey}} de la coleccion. role: admin | operator | viewer."
+          }
+        },
+        {
+          "name": "Revocar API key",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/api-keys/{{apiKeyId}}", "host": ["{{baseUrl}}"], "path": ["api-keys", "{{apiKeyId}}"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Alternativa: API Key (puerto externo, sin login de usuario)",
+      "item": [
+        {
+          "name": "Listar dispositivos (puerto externo)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [{ "key": "x-api-key", "value": "{{apiKey}}" }],
+            "url": { "raw": "{{externalBaseUrl}}/devices", "host": ["{{externalBaseUrl}}"], "path": ["devices"] },
+            "description": "Usa la key generada en la carpeta \"API Keys\" y el puerto externo ({{externalBaseUrl}}, 8081 por defecto). En este puerto SOLO funciona x-api-key - un JWT (Authorization: Bearer) es rechazado, y /auth /users /api-keys estan bloqueados aunque la key sea admin."
+          }
+        },
+        {
+          "name": "Enviar comando on/off (puerto externo)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "x-api-key", "value": "{{apiKey}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"action\": \"on\"\n}" },
+            "url": {
+              "raw": "{{externalBaseUrl}}/devices/{{deviceId}}/command",
+              "host": ["{{externalBaseUrl}}"],
+              "path": ["devices", "{{deviceId}}", "command"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
