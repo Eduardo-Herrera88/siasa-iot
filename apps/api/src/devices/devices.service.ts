@@ -8,6 +8,7 @@ import { EventLogService } from "../events/event-log.service";
 import { CreateDeviceDto } from "./dto/create-device.dto";
 import { UpdateDeviceDto } from "./dto/update-device.dto";
 import { COMMANDS_QUEUE } from "./devices.constants";
+import { restoreRedactedSecrets, sanitizeDevice } from "./device-secrets.util";
 
 @Injectable()
 export class DevicesService {
@@ -18,11 +19,12 @@ export class DevicesService {
     @InjectQueue(COMMANDS_QUEUE) private readonly commandsQueue: Queue,
   ) {}
 
-  findAll() {
-    return this.prisma.device.findMany({
+  async findAll() {
+    const devices = await this.prisma.device.findMany({
       include: { state: true },
       orderBy: { name: "asc" },
     });
+    return devices.map(sanitizeDevice);
   }
 
   async findOne(id: string) {
@@ -33,7 +35,7 @@ export class DevicesService {
     if (!device) {
       throw new NotFoundException("Dispositivo no encontrado");
     }
-    return device;
+    return sanitizeDevice(device);
   }
 
   async create(dto: CreateDeviceDto) {
@@ -64,11 +66,15 @@ export class DevicesService {
       deviceId: device.id,
     });
 
-    return device;
+    return sanitizeDevice(device);
   }
 
   async update(id: string, dto: UpdateDeviceDto) {
-    const existing = await this.findOne(id);
+    const existing = await this.prisma.device.findUnique({ where: { id } });
+    if (!existing) {
+      throw new NotFoundException("Dispositivo no encontrado");
+    }
+    restoreRedactedSecrets(existing.metadata, dto);
 
     let metadata: Record<string, unknown> | undefined;
     if (dto.httpConfig || dto.group || dto.hidden !== undefined || dto.ewelinkConfig || dto.mqttJson) {
