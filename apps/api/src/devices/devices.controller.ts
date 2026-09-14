@@ -1,10 +1,10 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards, Version } from "@nestjs/common";
 import { Role } from "@prisma/client";
-import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
+import { AuthGuard } from "../auth/guards/auth.guard";
 import { RolesGuard } from "../auth/guards/roles.guard";
 import { Roles } from "../auth/decorators/roles.decorator";
 import { CurrentUser } from "../auth/decorators/current-user.decorator";
-import type { AuthenticatedUser } from "../auth/auth.types";
+import { ownerUserId, type AuthenticatedUser } from "../auth/auth.types";
 import { DevicesService } from "./devices.service";
 import { HomeAssistantImportService } from "./home-assistant-import.service";
 import { Zigbee2MqttImportService } from "./zigbee2mqtt-import.service";
@@ -15,7 +15,7 @@ import { DiscoverHomeAssistantDto, ImportHomeAssistantDto } from "./dto/home-ass
 import { DiscoverZigbee2MqttDto, ImportZigbee2MqttDto } from "./dto/zigbee2mqtt-import.dto";
 
 @Controller("devices")
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(AuthGuard, RolesGuard)
 export class DevicesController {
   constructor(
     private readonly devicesService: DevicesService,
@@ -92,6 +92,6 @@ export class DevicesController {
     @Body() dto: DeviceCommandDto,
     @CurrentUser() user: AuthenticatedUser,
   ) {
-    return this.devicesService.sendCommand(id, dto.action, { userId: user.id });
+    return this.devicesService.sendCommand(id, dto.action, { userId: ownerUserId(user) });
   }
 }

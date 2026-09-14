@@ -54,8 +54,24 @@ model User {
   commands        Command[]
   eventLogs       EventLog[]
   automationRules AutomationRule[]
+  apiKeys         ApiKey[]
 
   @@map("users")
+}
+
+model ApiKey {
+  id          String    @id @default(uuid())
+  name        String
+  prefix      String
+  keyHash     String    @unique
+  role        Role      @default(viewer)
+  createdById String?
+  createdBy   User?     @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  lastUsedAt  DateTime?
+  revokedAt   DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@map("api_keys")
 }
 
 model RefreshToken {

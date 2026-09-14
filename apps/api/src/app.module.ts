@@ -13,6 +13,7 @@ import { DevicesModule } from "./devices/devices.module";
 import { RealtimeModule } from "./realtime/realtime.module";
 import { AutomationsModule } from "./automations/automations.module";
 import { EwelinkModule } from "./adapters/ewelink/ewelink.module";
+import { ApiKeysModule } from "./api-keys/api-keys.module";
 
 @Module({
   imports: [
@@ -45,6 +46,7 @@ import { EwelinkModule } from "./adapters/ewelink/ewelink.module";
     RealtimeModule,
     AutomationsModule,
     EwelinkModule,
+    ApiKeysModule,
   ],
 })
 export class AppModule {}

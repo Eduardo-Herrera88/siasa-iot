@@ -37,7 +37,7 @@ export class AuthService {
       throw new UnauthorizedException("Credenciales invalidas");
     }
 
-    return { id: user.id, username: user.username, role: user.role };
+    return { id: user.id, username: user.username, role: user.role, authType: "user" };
   }
 
   async issueTokenPair(user: AuthenticatedUser): Promise<TokenPair> {
@@ -106,6 +106,7 @@ export class AuthService {
       id: user.id,
       username: user.username,
       role: user.role,
+      authType: "user",
     };
     const tokens = await this.issueTokenPair(authenticatedUser);
 
