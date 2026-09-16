@@ -5,6 +5,7 @@ export interface DeviceStateEvent {
   deviceId: string;
   state: string;
   rawPayload?: string;
+  readings?: Record<string, unknown>;
 }
 
 /** In-process pub/sub between protocol adapters (publishers) and the realtime gateway / device state persistence (subscribers). */

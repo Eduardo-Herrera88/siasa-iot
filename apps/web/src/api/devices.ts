@@ -1,9 +1,19 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "./client";
 
+export interface SensorReadings {
+  temperature?: number;
+  humidity?: number;
+  battery?: number;
+  voltage?: number;
+  linkquality?: number;
+  [key: string]: number | string | boolean | undefined;
+}
+
 export interface DeviceState {
   state: string;
   rawPayload: string | null;
+  readings: SensorReadings | null;
   updatedAt: string;
 }
 
@@ -38,11 +48,13 @@ export interface EwelinkDeviceConfig {
 }
 
 export type DeviceProtocol = "mqtt" | "http" | "ewelink";
+export type DeviceKind = "switch" | "sensor";
 
 export interface Device {
   id: string;
   name: string;
   protocol: DeviceProtocol;
+  kind: DeviceKind;
   commandTopic: string | null;
   stateTopic: string | null;
   httpBaseUrl: string | null;
@@ -172,6 +184,7 @@ export interface ZigbeeEntity {
   name: string;
   model?: string;
   ieeeAddress?: string;
+  kind: DeviceKind;
 }
 
 export interface MqttBrokerParams {
@@ -231,6 +244,7 @@ export function useSendDeviceCommand() {
                 state: {
                   state: action,
                   rawPayload: device.state?.rawPayload ?? null,
+                  readings: device.state?.readings ?? null,
                   updatedAt: new Date().toISOString(),
                 },
               }

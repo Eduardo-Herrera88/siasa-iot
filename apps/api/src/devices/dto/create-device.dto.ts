@@ -1,6 +1,6 @@
 import { Type } from "class-transformer";
 import { IsBoolean, IsEnum, IsOptional, IsString, MinLength, ValidateIf, ValidateNested } from "class-validator";
-import { DeviceProtocol } from "@prisma/client";
+import { DeviceKind, DeviceProtocol } from "@prisma/client";
 import { HttpDeviceConfigDto } from "./http-device-config.dto";
 import { DeviceGroupDto } from "./device-group.dto";
 import { EwelinkDeviceConfigDto } from "./ewelink-device-config.dto";
@@ -13,6 +13,11 @@ export class CreateDeviceDto {
 
   @IsEnum(DeviceProtocol)
   protocol!: DeviceProtocol;
+
+  /** switch (default): expone un toggle on/off. sensor: solo reporta lecturas (temperatura, humedad, etc), sin comandos. */
+  @IsOptional()
+  @IsEnum(DeviceKind)
+  kind?: DeviceKind;
 
   @IsOptional()
   @IsString()

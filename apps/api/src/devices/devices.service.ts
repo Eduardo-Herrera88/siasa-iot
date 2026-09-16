@@ -51,6 +51,7 @@ export class DevicesService {
       data: {
         name: dto.name,
         protocol: dto.protocol,
+        kind: dto.kind,
         commandTopic: dto.commandTopic,
         stateTopic: dto.stateTopic,
         payloadOn: dto.payloadOn ?? "ON",
@@ -92,6 +93,7 @@ export class DevicesService {
       data: {
         name: dto.name,
         protocol: dto.protocol,
+        kind: dto.kind,
         commandTopic: dto.commandTopic,
         stateTopic: dto.stateTopic,
         payloadOn: dto.payloadOn,

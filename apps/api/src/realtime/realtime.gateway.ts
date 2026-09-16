@@ -1,6 +1,7 @@
 import { Logger, OnModuleDestroy, OnModuleInit } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { JwtService } from "@nestjs/jwt";
+import type { Prisma } from "@prisma/client";
 import { OnGatewayConnection, WebSocketGateway, WebSocketServer } from "@nestjs/websockets";
 import type { Subscription } from "rxjs";
 import type { Server, WebSocket } from "ws";
@@ -24,10 +25,20 @@ export class RealtimeGateway implements OnGatewayConnection, OnModuleInit, OnMod
 
   onModuleInit() {
     this.subscription = this.stateBus.events$.subscribe(async (event) => {
+      const readings = event.readings as Prisma.InputJsonValue | undefined;
       await this.prisma.deviceState.upsert({
         where: { deviceId: event.deviceId },
-        create: { deviceId: event.deviceId, state: event.state, rawPayload: event.rawPayload },
-        update: { state: event.state, rawPayload: event.rawPayload },
+        create: {
+          deviceId: event.deviceId,
+          state: event.state,
+          rawPayload: event.rawPayload,
+          readings,
+        },
+        update: {
+          state: event.state,
+          rawPayload: event.rawPayload,
+          readings,
+        },
       });
       this.broadcast({ type: "device.state", ...event });
     });

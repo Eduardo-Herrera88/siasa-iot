@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable, Logger } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
-import { DeviceProtocol } from "@prisma/client";
+import { DeviceKind, DeviceProtocol } from "@prisma/client";
 import mqtt from "mqtt";
 import { DevicesService } from "./devices.service";
 import { DiscoverZigbee2MqttDto, ImportZigbee2MqttDto } from "./dto/zigbee2mqtt-import.dto";
@@ -8,18 +8,50 @@ import { CreateDeviceDto } from "./dto/create-device.dto";
 
 const DISCOVER_TIMEOUT_MS = 6000;
 
+/** Expone acciones (state on/off, brightness, etc): son las senales que Zigbee2MQTT usa para "encender/apagar". */
+const ACTIONABLE_EXPOSE_PROPERTIES = new Set(["state"]);
+/** Lecturas de solo-sensor: si un dispositivo expone alguna de estas y ninguna accionable, es un sensor puro. */
+const SENSOR_EXPOSE_PROPERTIES = new Set(["temperature", "humidity", "battery", "voltage", "linkquality"]);
+
 export interface DiscoveredZigbeeDevice {
   friendlyName: string;
   name: string;
   model?: string;
   ieeeAddress?: string;
+  kind: DeviceKind;
+}
+
+interface Zigbee2MqttExpose {
+  type?: string;
+  property?: string;
+  features?: { property?: string }[];
 }
 
 interface Zigbee2MqttDeviceEntry {
   friendly_name: string;
   ieee_address?: string;
   type?: string;
-  definition?: { model?: string; description?: string } | null;
+  definition?: { model?: string; description?: string; exposes?: Zigbee2MqttExpose[] } | null;
+}
+
+/** Junta las properties expuestas directamente y las anidadas en composite/light/switch (features). */
+function exposedProperties(entry: Zigbee2MqttDeviceEntry): Set<string> {
+  const props = new Set<string>();
+  for (const expose of entry.definition?.exposes ?? []) {
+    if (expose.property) props.add(expose.property);
+    for (const feature of expose.features ?? []) {
+      if (feature.property) props.add(feature.property);
+    }
+  }
+  return props;
+}
+
+/** Sin "state" (ni nada accionable) pero con al menos una lectura conocida -> es un sensor puro, no un switch. */
+function inferZigbeeKind(entry: Zigbee2MqttDeviceEntry): DeviceKind {
+  const props = exposedProperties(entry);
+  const hasAction = [...props].some((p) => ACTIONABLE_EXPOSE_PROPERTIES.has(p));
+  const hasSensorReading = [...props].some((p) => SENSOR_EXPOSE_PROPERTIES.has(p));
+  return !hasAction && hasSensorReading ? DeviceKind.sensor : DeviceKind.switch;
 }
 
 /**
@@ -49,6 +81,7 @@ export class Zigbee2MqttImportService {
         name: e.friendly_name,
         model: e.definition?.model ?? undefined,
         ieeeAddress: e.ieee_address,
+        kind: inferZigbeeKind(e),
       }));
   }
 
@@ -57,20 +90,42 @@ export class Zigbee2MqttImportService {
     const created: unknown[] = [];
     const failed: { friendlyName: string; error: string }[] = [];
 
+    // Se reconsulta la lista del bridge para saber, por dispositivo, si expone "state" (switch)
+    // o solo lecturas (sensor) - los datos de exposes no viajan en dto.entities (solo friendlyName/name).
+    let kindByFriendlyName = new Map<string, DeviceKind>();
+    try {
+      const entries = await this.fetchDeviceList(dto, baseTopic);
+      kindByFriendlyName = new Map(entries.map((e) => [e.friendly_name, inferZigbeeKind(e)]));
+    } catch (err) {
+      this.logger.warn(
+        `No se pudo reconsultar "${baseTopic}/bridge/devices" para detectar sensores; se asumira switch para todos: ${(err as Error).message}`,
+      );
+    }
+
     for (const entity of dto.entities) {
-      const createDto: CreateDeviceDto = {
-        name: entity.name?.trim() || entity.friendlyName,
-        protocol: DeviceProtocol.mqtt,
-        payloadOn: "ON",
-        payloadOff: "OFF",
-        stateTopic: `${baseTopic}/${entity.friendlyName}`,
-        commandTopic: `${baseTopic}/${entity.friendlyName}/set`,
-        mqttJson: {
-          statePath: "state",
-          onPayload: { state: "ON" },
-          offPayload: { state: "OFF" },
-        },
-      };
+      const kind = kindByFriendlyName.get(entity.friendlyName) ?? DeviceKind.switch;
+      const createDto: CreateDeviceDto =
+        kind === DeviceKind.sensor
+          ? {
+              name: entity.name?.trim() || entity.friendlyName,
+              protocol: DeviceProtocol.mqtt,
+              kind: DeviceKind.sensor,
+              stateTopic: `${baseTopic}/${entity.friendlyName}`,
+            }
+          : {
+              name: entity.name?.trim() || entity.friendlyName,
+              protocol: DeviceProtocol.mqtt,
+              kind: DeviceKind.switch,
+              payloadOn: "ON",
+              payloadOff: "OFF",
+              stateTopic: `${baseTopic}/${entity.friendlyName}`,
+              commandTopic: `${baseTopic}/${entity.friendlyName}/set`,
+              mqttJson: {
+                statePath: "state",
+                onPayload: { state: "ON" },
+                offPayload: { state: "OFF" },
+              },
+            };
 
       try {
         created.push(await this.devicesService.create(createDto));

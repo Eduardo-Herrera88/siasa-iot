@@ -9,6 +9,7 @@ import AddDeviceForm from "./AddDeviceForm";
 import ImportHomeAssistant from "./ImportHomeAssistant";
 import ImportMqtt from "./ImportMqtt";
 import ToggleSwitch from "../components/ToggleSwitch";
+import { SensorReadingInline, SensorReadingPanel } from "../components/SensorReadingCard";
 import LiveClock from "../components/LiveClock";
 import {
   BuildingIcon,
@@ -105,8 +106,9 @@ function DeviceRow({
   onDelete: (device: Device) => void;
   onHide: (device: Device) => void;
 }) {
+  const isSensor = device.kind === "sensor";
   const isOn = device.state?.state === "on";
-  const kind = inferDeviceKind(device.name);
+  const kind = inferDeviceKind(device.name, device.kind);
   return (
     <div className="group flex items-center justify-between gap-3 border-b border-slate-800/70 py-2.5 last:border-b-0">
       <div className="flex min-w-0 items-center gap-2.5">
@@ -114,7 +116,11 @@ function DeviceRow({
         <span className="truncate text-sm text-slate-200">{device.name}</span>
       </div>
       <div className="flex shrink-0 items-center gap-2">
-        <ToggleSwitch checked={isOn} onChange={(next) => onToggle(device, next)} />
+        {isSensor ? (
+          <SensorReadingInline readings={device.state?.readings ?? null} />
+        ) : (
+          <ToggleSwitch checked={isOn} onChange={(next) => onToggle(device, next)} />
+        )}
         <div className="flex items-center gap-1.5 opacity-0 transition-opacity group-hover:opacity-100">
           <ActionButton onClick={() => onEdit(device)} title="Editar" tone="blue">
             <EditIcon className="h-5 w-5" />
@@ -166,13 +172,15 @@ export default function Devices() {
     const hidden: Device[] = [];
     let on = 0;
     let off = 0;
+    let sensors = 0;
 
     for (const device of devices ?? []) {
       if (device.metadata?.hidden) {
         hidden.push(device);
         continue;
       }
-      if (device.state?.state === "on") on += 1;
+      if (device.kind === "sensor") sensors += 1;
+      else if (device.state?.state === "on") on += 1;
       else if (device.state?.state === "off") off += 1;
 
       if (query && !device.name.toLowerCase().includes(query)) continue;
@@ -185,7 +193,7 @@ export default function Devices() {
         singles.push(device);
       }
     }
-    return { groups, singles, hidden, stats: { total: on + off, on, off } };
+    return { groups, singles, hidden, stats: { total: on + off + sensors, on, off, sensors } };
   }, [devices, search]);
 
   function handleLogout() {
@@ -322,10 +330,11 @@ export default function Devices() {
         </div>
 
         {!isLoading && !isError && stats.total > 0 && (
-          <div className="mb-6 grid grid-cols-3 gap-3 sm:max-w-md">
+          <div className={`mb-6 grid gap-3 ${stats.sensors > 0 ? "grid-cols-4 sm:max-w-lg" : "grid-cols-3 sm:max-w-md"}`}>
             <StatTile label="Dispositivos" value={stats.total} tone="slate" />
             <StatTile label="Encendidos" value={stats.on} tone="emerald" />
             <StatTile label="Apagados" value={stats.off} tone="sky" />
+            {stats.sensors > 0 && <StatTile label="Sensores" value={stats.sensors} tone="sky" />}
           </div>
         )}
 
@@ -409,7 +418,7 @@ export default function Devices() {
 
           {[...groups.entries()].map(([key, members]) => {
             const title = members[0].metadata?.group?.label || members[0].name;
-            const groupKind = inferDeviceKind(title);
+            const groupKind = inferDeviceKind(title, members[0].kind);
             const groupOn = members.some((m) => m.state?.state === "on");
             return (
               <div
@@ -443,8 +452,9 @@ export default function Devices() {
           })}
 
           {singles.map((device) => {
+            const isSensor = device.kind === "sensor";
             const isOn = device.state?.state === "on";
-            const kind = inferDeviceKind(device.name);
+            const kind = inferDeviceKind(device.name, device.kind);
             return (
               <div
                 key={device.id}
@@ -452,7 +462,7 @@ export default function Devices() {
               >
                 <div className="mb-4 flex items-start justify-between gap-3">
                   <div className="flex min-w-0 items-center gap-3">
-                    <DeviceIconBadge kind={kind} isOn={isOn} />
+                    <DeviceIconBadge kind={kind} isOn={!isSensor && isOn} />
                     <div className="min-w-0">
                       <h2 className="truncate font-medium text-slate-100">{device.name}</h2>
                       <p className={`text-xs font-medium uppercase tracking-wide ${kind.accent.text}`}>
@@ -460,34 +470,36 @@ export default function Devices() {
                       </p>
                     </div>
                   </div>
-                  <ToggleSwitch checked={isOn} onChange={(next) => handleToggle(device, next)} />
+                  <div className="flex shrink-0 items-center gap-2">
+                    {!isSensor && <ToggleSwitch checked={isOn} onChange={(next) => handleToggle(device, next)} />}
+                    <span className="hidden items-center gap-1 group-hover:flex">
+                      <ActionButton onClick={() => handleEdit(device)} title="Editar" tone="blue">
+                        <EditIcon className="h-4 w-4" />
+                      </ActionButton>
+                      <ActionButton onClick={() => handleHide(device)} title="Ocultar del panel" tone="slate">
+                        <EyeOffIcon className="h-4 w-4" />
+                      </ActionButton>
+                      <ActionButton onClick={() => handleDelete(device)} title="Eliminar" tone="red">
+                        <TrashIcon className="h-4 w-4" />
+                      </ActionButton>
+                    </span>
+                  </div>
                 </div>
 
-                <div className="flex items-center justify-between border-t border-slate-800/70 pt-3 text-xs text-slate-500">
-                  <span className="flex items-center gap-1.5">
-                    <StatusDot isOn={isOn} />
-                    {isOn ? "Encendido" : "Apagado"}
-                  </span>
-                  <span className="flex items-center gap-2">
-                    <span className="hidden group-hover:inline-flex">
-                      <span className="flex items-center gap-1">
-                        <ActionButton onClick={() => handleEdit(device)} title="Editar" tone="blue">
-                          <EditIcon className="h-4 w-4" />
-                        </ActionButton>
-                        <ActionButton onClick={() => handleHide(device)} title="Ocultar del panel" tone="slate">
-                          <EyeOffIcon className="h-4 w-4" />
-                        </ActionButton>
-                        <ActionButton onClick={() => handleDelete(device)} title="Eliminar" tone="red">
-                          <TrashIcon className="h-4 w-4" />
-                        </ActionButton>
-                      </span>
+                {isSensor ? (
+                  <SensorReadingPanel readings={device.state?.readings ?? null} updatedAt={device.state?.updatedAt} />
+                ) : (
+                  <div className="flex items-center justify-between border-t border-slate-800/70 pt-3 text-xs text-slate-500">
+                    <span className="flex items-center gap-1.5">
+                      <StatusDot isOn={isOn} />
+                      {isOn ? "Encendido" : "Apagado"}
                     </span>
-                    <span className="group-hover:hidden">
+                    <span>
                       {device.protocol.toUpperCase()} &middot;{" "}
                       {device.state?.updatedAt ? new Date(device.state.updatedAt).toLocaleTimeString() : "sin datos"}
                     </span>
-                  </span>
-                </div>
+                  </div>
+                )}
               </div>
             );
           })}

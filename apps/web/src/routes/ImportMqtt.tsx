@@ -16,7 +16,7 @@ export default function ImportMqtt({ onDone }: { onDone: () => void }) {
   const discover = useDiscoverZigbee2Mqtt();
   const importDevices = useImportZigbee2Mqtt();
 
-  const [brokerUrl, setBrokerUrl] = useState("");
+  const [brokerUrl, setBrokerUrl] = useState("mqtt://10.3.0.25:1883");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [baseTopic, setBaseTopic] = useState("zigbee2mqtt");
@@ -112,14 +112,20 @@ export default function ImportMqtt({ onDone }: { onDone: () => void }) {
           <input className={inputClass} value={baseTopic} onChange={(e) => setBaseTopic(e.target.value)} />
         </div>
         <div>
-          <label className={labelClass}>Usuario (opcional)</label>
-          <input className={inputClass} value={username} onChange={(e) => setUsername(e.target.value)} />
+          <label className={labelClass}>Usuario (opcional, deja vacio para usar el del servidor)</label>
+          <input
+            className={inputClass}
+            autoComplete="off"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+          />
         </div>
         <div>
-          <label className={labelClass}>Contraseña (opcional)</label>
+          <label className={labelClass}>Contraseña (opcional, deja vacio para usar la del servidor)</label>
           <input
             className={inputClass}
             type="password"
+            autoComplete="new-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
@@ -185,6 +191,13 @@ export default function ImportMqtt({ onDone }: { onDone: () => void }) {
                   />
                   <span>{entity.name}</span>
                   {entity.model && <span className="text-xs text-slate-500">{entity.model}</span>}
+                  <span
+                    className={`rounded px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide ${
+                      entity.kind === "sensor" ? "bg-orange-500/10 text-orange-300" : "bg-emerald-500/10 text-emerald-300"
+                    }`}
+                  >
+                    {entity.kind === "sensor" ? "Sensor" : "Switch"}
+                  </span>
                 </span>
               </label>
             ))}

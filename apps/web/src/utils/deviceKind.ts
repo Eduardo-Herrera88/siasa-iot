@@ -1,4 +1,5 @@
 import type { ComponentType } from "react";
+import type { DeviceKind } from "../api/devices";
 import {
   BulbIcon,
   CameraIcon,
@@ -6,10 +7,11 @@ import {
   FanIcon,
   LockIcon,
   PlugIcon,
+  ThermometerIcon,
   WaterDropIcon,
 } from "../components/icons";
 
-export type DeviceKindId = "light" | "climate" | "water" | "lock" | "camera" | "fan" | "plug";
+export type DeviceKindId = "light" | "climate" | "water" | "lock" | "camera" | "fan" | "plug" | "sensor";
 
 export interface DeviceKindMeta {
   id: DeviceKindId;
@@ -65,6 +67,12 @@ const KINDS: Record<DeviceKindId, DeviceKindMeta> = {
     Icon: PlugIcon,
     accent: { text: "text-emerald-300", glow: "shadow-emerald-400/30", bgOn: "bg-emerald-400/15" },
   },
+  sensor: {
+    id: "sensor",
+    label: "Sensor T/H",
+    Icon: ThermometerIcon,
+    accent: { text: "text-orange-300", glow: "shadow-orange-400/30", bgOn: "bg-orange-400/15" },
+  },
 };
 
 const RULES: [RegExp, DeviceKindId][] = [
@@ -76,8 +84,14 @@ const RULES: [RegExp, DeviceKindId][] = [
   [/ventilador|\bfan\b|extractor/i, "fan"],
 ];
 
-/** Deduce el tipo de widget a mostrar a partir del nombre del dispositivo (no hay un campo "kind" en el modelo todavia). */
-export function inferDeviceKind(name: string): DeviceKindMeta {
+/**
+ * Deduce el widget a mostrar. Si el backend ya sabe que es un sensor (Device.kind), eso manda:
+ * un "Sensor TH-RECEPCION" no debe caer en las reglas de nombre (podria matchear cualquier cosa).
+ * Solo para "switch" se infiere el icono/categoria por nombre (luz, clima, agua, etc).
+ */
+export function inferDeviceKind(name: string, backendKind?: DeviceKind): DeviceKindMeta {
+  if (backendKind === "sensor") return KINDS.sensor;
+
   // Los guiones/guiones bajos no son limite de palabra para \b (son \w), asi que
   // "TIRA_LED_OFICINA" no matcheaba \bled\b: se normalizan a espacios antes de probar.
   const normalized = name.replace(/[_-]+/g, " ");

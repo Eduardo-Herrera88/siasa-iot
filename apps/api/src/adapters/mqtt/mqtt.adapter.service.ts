@@ -1,6 +1,6 @@
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
-import { CommandAction, Device, DeviceProtocol } from "@prisma/client";
+import { CommandAction, Device, DeviceKind, DeviceProtocol } from "@prisma/client";
 import mqtt, { MqttClient } from "mqtt";
 import { PrismaService } from "../../prisma/prisma.service";
 import { DeviceStateBus } from "../../state-bus/device-state-bus.service";
@@ -108,7 +108,19 @@ export class MqttAdapterService implements DeviceAdapter, OnModuleInit, OnModule
     if (extracted === device.payloadOn) state = "on";
     else if (extracted === device.payloadOff) state = "off";
 
-    this.stateBus.emit({ deviceId, state, rawPayload: raw });
+    let readings: Record<string, unknown> | undefined;
+    if (device.kind === DeviceKind.sensor) {
+      try {
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+          readings = parsed as Record<string, unknown>;
+        }
+      } catch {
+        // payload no era JSON valido; el sensor no reporto lecturas estructuradas esta vez
+      }
+    }
+
+    this.stateBus.emit({ deviceId, state, rawPayload: raw, readings });
   }
 
   async publishCommand(device: Device, action: CommandAction): Promise<void> {

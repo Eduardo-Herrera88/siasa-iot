@@ -12,7 +12,7 @@ export default function ImportHomeAssistant({ onDone }: { onDone: () => void }) 
   const discover = useDiscoverHomeAssistant();
   const importDevices = useImportHomeAssistant();
 
-  const [baseUrl, setBaseUrl] = useState("");
+  const [baseUrl, setBaseUrl] = useState("http://10.3.0.25:8123");
   const [token, setToken] = useState("");
   const [entities, setEntities] = useState<HomeAssistantEntity[] | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -99,6 +99,7 @@ export default function ImportHomeAssistant({ onDone }: { onDone: () => void }) 
           <input
             className={inputClass}
             type="password"
+            autoComplete="new-password"
             placeholder="eyJhbGciOi..."
             value={token}
             onChange={(e) => setToken(e.target.value)}

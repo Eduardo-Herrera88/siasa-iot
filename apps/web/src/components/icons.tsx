@@ -209,6 +209,44 @@ export function PlugIcon({ className = base }: IconProps) {
   );
 }
 
+export function ThermometerIcon({ className = base }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className}>
+      <path
+        d="M12 14.5V5a2 2 0 1 0-4 0v9.5a4 4 0 1 0 4 0Z"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinejoin="round"
+      />
+      <path d="M10 8h2m-2 3h2" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+      <circle cx="10" cy="17" r="1.3" fill="currentColor" />
+    </svg>
+  );
+}
+
+export function BatteryIcon({ className = base }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className}>
+      <rect x="2.5" y="8" width="16" height="8" rx="1.5" stroke="currentColor" strokeWidth="1.6" />
+      <path d="M21 10.5v3" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      <rect x="4.5" y="10" width="4" height="4" fill="currentColor" />
+    </svg>
+  );
+}
+
+export function SignalIcon({ className = base }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className}>
+      <path
+        d="M4 18v-3M9 18v-6M14 18V9M19 18V5"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
 export function ChipLogo({ className = "h-8 w-8" }: IconProps) {
   return (
     <svg viewBox="0 0 24 24" fill="none" className={className}>
